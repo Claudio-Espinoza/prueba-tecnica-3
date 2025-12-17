@@ -17,5 +17,7 @@
    flex-direction: column;
    justify-content: center;
    align-items: center;
-   background-color: var(--color-neutral-100);
+   background-color: var(--color-neutral-200);
+   padding: var(--spacing-l);
+   gap: var(--spacing-l);
 }

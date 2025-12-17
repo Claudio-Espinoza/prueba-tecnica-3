@@ -3,43 +3,55 @@
 @layer base {
    h1 {
       font-family: var(--font-headings);
-      letter-spacing: var(--leading-tight);
+      letter-spacing: var(--leading-normal);
       font-size: var(--text-header-1);
-      line-height: var(--tracking-normal);
+      line-height: var(--text-header-1);
+      font-weight: 600;
+      color: var(--color-neutral-900);
    }
 
    h2 {
       font-family: var(--font-headings);
-      letter-spacing: var(--leading-tight);
+      letter-spacing: var(--leading-normal);
       font-size: var(--text-header-2);
-      line-height: var(--tracking-normal);
+      color: var(--color-neutral-900);
+      font-weight: 500;
    }
    h3 {
       font-family: var(--font-headings);
       letter-spacing: var(--leading-tight);
       font-size: var(--text-header-3);
-      line-height: var(--tracking-normal);
+      color: var(--color-neutral-900);
+      font-weight: 500;
    }
    h4 {
       font-family: var(--font-headings);
       letter-spacing: var(--leading-tight);
       font-size: var(--text-header-4);
-      line-height: var(--tracking-normal);
+      color: var(--color-neutral-900);
+      font-weight: 500;
    }
    h5 {
       font-family: var(--font-headings);
       letter-spacing: var(--leading-tight);
       font-size: var(--text-header-5);
-      line-height: var(--tracking-normal);
+      color: var(--color-neutral-900);
+      font-weight: 500;
    }
    h6 {
       font-family: var(--font-headings);
       letter-spacing: var(--leading-tight);
       font-size: var(--text-header-6);
-      line-height: var(--tracking-normal);
+      color: var(--color-neutral-900);
+      font-weight: 500;
    }
 
-   p,
+   p {
+      font-family: var(--font-body);
+      letter-spacing: var(--leading-normal);
+      color: var(--color-neutral-700);
+   }
+
    a {
       font-family: var(--font-body);
       letter-spacing: var(--leading-normal);
