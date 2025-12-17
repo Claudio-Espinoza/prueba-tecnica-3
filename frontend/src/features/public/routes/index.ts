@@ -1,12 +1,18 @@
 const routesPublic = [
     {
         path: '/',
-        redirect: '/home',
-    },
-    {
-        path: '/home',
-        name: 'home',
-        component: () => import('@features/public/view/homeView.vue'),
+        component: () => import('@libraries/layout/PublicLayout.vue'),
+        children: [
+            {
+                path: '',
+                name: 'home',
+                component: () => import('@features/public/view/HomeView.vue'),
+            },
+            {
+                path: 'home',
+                redirect: '/',
+            },
+        ],
     },
 ];
 
