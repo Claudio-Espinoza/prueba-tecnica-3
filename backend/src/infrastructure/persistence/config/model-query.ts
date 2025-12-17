@@ -21,7 +21,7 @@ export const MIGRATIONS = {
 
   user_board_roles: `
     CREATE TABLE IF NOT EXISTS user_board_roles (
-      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       board_id UUID NOT NULL REFERENCES boards(id) ON DELETE CASCADE,
       role TEXT CHECK (role IN ('viewer', 'editor')) DEFAULT 'viewer',
       PRIMARY KEY (user_id, board_id)
