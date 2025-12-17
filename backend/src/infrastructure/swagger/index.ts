@@ -111,6 +111,484 @@ const definition = {
         }
     },
     paths: {
+        '/api/boards': {
+            post: {
+                summary: 'Crear un nuevo tablero',
+                tags: ['Board'],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                required: ['name', 'owner_id'],
+                                properties: {
+                                    name: { type: 'string', minLength: 1, maxLength: 100, example: 'Mi Tablero' },
+                                    description: { type: 'string', example: 'Descripción del tablero' },
+                                    owner_id: { type: 'string', example: 'user123' }
+                                }
+                            }
+                        }
+                    }
+                },
+                responses: {
+                    '201': {
+                        description: 'Tablero creado exitosamente',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean' },
+                                        data: { $ref: '#/components/schemas/Board' },
+                                        timestamp: { type: 'string', format: 'date-time' }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    '400': {
+                        description: 'Validación fallida'
+                    }
+                }
+            },
+            get: {
+                summary: 'Listar tableros',
+                tags: ['Board'],
+                parameters: [
+                    {
+                        in: 'query',
+                        name: 'owner_id',
+                        schema: { type: 'string' },
+                        description: 'Filtrar por propietario'
+                    },
+                    {
+                        in: 'query',
+                        name: 'page',
+                        schema: { type: 'integer', default: 1 },
+                        description: 'Número de página'
+                    },
+                    {
+                        in: 'query',
+                        name: 'limit',
+                        schema: { type: 'integer', default: 10 },
+                        description: 'Registros por página'
+                    }
+                ],
+                responses: {
+                    '200': {
+                        description: 'Lista de tableros',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean' },
+                                        data: {
+                                            type: 'array',
+                                            items: { $ref: '#/components/schemas/Board' }
+                                        },
+                                        total: { type: 'integer' },
+                                        page: { type: 'integer' },
+                                        limit: { type: 'integer' },
+                                        timestamp: { type: 'string', format: 'date-time' }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api/boards/{id}': {
+            get: {
+                summary: 'Obtener un tablero por ID',
+                tags: ['Board'],
+                parameters: [
+                    {
+                        in: 'path',
+                        name: 'id',
+                        required: true,
+                        schema: { type: 'string', format: 'uuid' },
+                        description: 'ID del tablero'
+                    }
+                ],
+                responses: {
+                    '200': {
+                        description: 'Tablero encontrado',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean' },
+                                        data: { $ref: '#/components/schemas/Board' },
+                                        timestamp: { type: 'string', format: 'date-time' }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    '400': { description: 'ID inválido' },
+                    '404': { description: 'Tablero no encontrado' }
+                }
+            },
+            delete: {
+                summary: 'Eliminar un tablero',
+                tags: ['Board'],
+                parameters: [
+                    {
+                        in: 'path',
+                        name: 'id',
+                        required: true,
+                        schema: { type: 'string', format: 'uuid' },
+                        description: 'ID del tablero'
+                    }
+                ],
+                responses: {
+                    '200': { description: 'Tablero eliminado exitosamente' },
+                    '400': { description: 'ID inválido' },
+                    '404': { description: 'Tablero no encontrado' }
+                }
+            }
+        },
+        '/api/notes': {
+            post: {
+                summary: 'Crear una nueva nota',
+                tags: ['Note'],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                required: ['board_id', 'title', 'x', 'y', 'updated_by'],
+                                properties: {
+                                    board_id: { type: 'string', format: 'uuid' },
+                                    title: { type: 'string', example: 'Nota importante' },
+                                    content: { type: 'string', example: 'Contenido' },
+                                    x: { type: 'integer', example: 100 },
+                                    y: { type: 'integer', example: 200 },
+                                    updated_by: { type: 'string', example: 'user123' }
+                                }
+                            }
+                        }
+                    }
+                },
+                responses: {
+                    '201': {
+                        description: 'Nota creada',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean' },
+                                        data: { $ref: '#/components/schemas/Note' },
+                                        timestamp: { type: 'string', format: 'date-time' }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    '400': { description: 'Validación fallida' }
+                }
+            },
+            get: {
+                summary: 'Listar notas de un tablero',
+                tags: ['Note'],
+                parameters: [
+                    {
+                        in: 'query',
+                        name: 'board_id',
+                        required: true,
+                        schema: { type: 'string', format: 'uuid' },
+                        description: 'ID del tablero'
+                    },
+                    {
+                        in: 'query',
+                        name: 'page',
+                        schema: { type: 'integer', default: 1 }
+                    },
+                    {
+                        in: 'query',
+                        name: 'limit',
+                        schema: { type: 'integer', default: 50 }
+                    }
+                ],
+                responses: {
+                    '200': {
+                        description: 'Lista de notas',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean' },
+                                        data: {
+                                            type: 'array',
+                                            items: { $ref: '#/components/schemas/Note' }
+                                        },
+                                        total: { type: 'integer' },
+                                        page: { type: 'integer' },
+                                        limit: { type: 'integer' },
+                                        timestamp: { type: 'string', format: 'date-time' }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api/notes/{id}': {
+            get: {
+                summary: 'Obtener una nota por ID',
+                tags: ['Note'],
+                parameters: [
+                    {
+                        in: 'path',
+                        name: 'id',
+                        required: true,
+                        schema: { type: 'string', format: 'uuid' },
+                        description: 'ID de la nota'
+                    }
+                ],
+                responses: {
+                    '200': {
+                        description: 'Nota encontrada',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean' },
+                                        data: { $ref: '#/components/schemas/Note' },
+                                        timestamp: { type: 'string', format: 'date-time' }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    '400': { description: 'ID inválido' },
+                    '404': { description: 'Nota no encontrada' }
+                }
+            },
+            put: {
+                summary: 'Actualizar una nota',
+                tags: ['Note'],
+                parameters: [
+                    {
+                        in: 'path',
+                        name: 'id',
+                        required: true,
+                        schema: { type: 'string', format: 'uuid' }
+                    }
+                ],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                required: ['updated_by'],
+                                properties: {
+                                    title: { type: 'string' },
+                                    content: { type: 'string' },
+                                    x: { type: 'integer' },
+                                    y: { type: 'integer' },
+                                    updated_by: { type: 'string' }
+                                }
+                            }
+                        }
+                    }
+                },
+                responses: {
+                    '200': { description: 'Nota actualizada' },
+                    '400': { description: 'Validación fallida' },
+                    '404': { description: 'Nota no encontrada' }
+                }
+            },
+            delete: {
+                summary: 'Eliminar una nota',
+                tags: ['Note'],
+                parameters: [
+                    {
+                        in: 'path',
+                        name: 'id',
+                        required: true,
+                        schema: { type: 'string', format: 'uuid' }
+                    }
+                ],
+                responses: {
+                    '200': { description: 'Nota eliminada' },
+                    '400': { description: 'ID inválido' },
+                    '404': { description: 'Nota no encontrada' }
+                }
+            }
+        },
+        '/api/comments': {
+            post: {
+                summary: 'Agregar un comentario',
+                tags: ['Comment'],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                required: ['note_id', 'text'],
+                                properties: {
+                                    board_id: { type: 'string', format: 'uuid' },
+                                    note_id: { type: 'string', format: 'uuid' },
+                                    text: { type: 'string', example: 'Comentario sobre la nota' },
+                                    user_name: { type: 'string', example: 'Juan' }
+                                }
+                            }
+                        }
+                    }
+                },
+                responses: {
+                    '201': {
+                        description: 'Comentario creado',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean' },
+                                        data: { $ref: '#/components/schemas/Comment' },
+                                        timestamp: { type: 'string', format: 'date-time' }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api/comments/{noteId}': {
+            get: {
+                summary: 'Listar comentarios de una nota',
+                tags: ['Comment'],
+                parameters: [
+                    {
+                        in: 'path',
+                        name: 'noteId',
+                        required: true,
+                        schema: { type: 'string', format: 'uuid' }
+                    },
+                    {
+                        in: 'query',
+                        name: 'page',
+                        schema: { type: 'integer', default: 1 }
+                    },
+                    {
+                        in: 'query',
+                        name: 'limit',
+                        schema: { type: 'integer', default: 20 }
+                    }
+                ],
+                responses: {
+                    '200': {
+                        description: 'Lista de comentarios',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean' },
+                                        data: {
+                                            type: 'array',
+                                            items: { $ref: '#/components/schemas/Comment' }
+                                        },
+                                        total: { type: 'integer' },
+                                        page: { type: 'integer' },
+                                        limit: { type: 'integer' },
+                                        timestamp: { type: 'string', format: 'date-time' }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api/users': {
+            get: {
+                summary: 'Listar usuarios conectados',
+                tags: ['User'],
+                parameters: [
+                    {
+                        in: 'query',
+                        name: 'page',
+                        schema: { type: 'integer', default: 1 }
+                    },
+                    {
+                        in: 'query',
+                        name: 'limit',
+                        schema: { type: 'integer', default: 20 }
+                    }
+                ],
+                responses: {
+                    '200': {
+                        description: 'Lista de usuarios',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean' },
+                                        data: {
+                                            type: 'array',
+                                            items: { $ref: '#/components/schemas/User' }
+                                        },
+                                        total: { type: 'integer' },
+                                        page: { type: 'integer' },
+                                        limit: { type: 'integer' },
+                                        timestamp: { type: 'string', format: 'date-time' }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api/users/{id}': {
+            get: {
+                summary: 'Obtener un usuario por ID',
+                tags: ['User'],
+                parameters: [
+                    {
+                        in: 'path',
+                        name: 'id',
+                        required: true,
+                        schema: { type: 'string', format: 'uuid' },
+                        description: 'ID del usuario'
+                    }
+                ],
+                responses: {
+                    '200': {
+                        description: 'Usuario encontrado',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean' },
+                                        data: { $ref: '#/components/schemas/User' },
+                                        timestamp: { type: 'string', format: 'date-time' }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    '400': { description: 'ID inválido' },
+                    '404': { description: 'Usuario no encontrado' }
+                }
+            }
+        },
         '/health': {
             get: {
                 summary: 'Health check del servidor',
