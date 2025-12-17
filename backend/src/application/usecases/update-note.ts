@@ -1,4 +1,3 @@
-// backend/src/application/usecases/UpdateNote.ts
 import { NoteRepository } from '../../domain/repositories/note';
 import { NoteId } from '../../domain/value-objects/note-id';
 import {

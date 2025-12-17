@@ -1,4 +1,3 @@
-// backend/src/application/usecases/JoinUser.ts
 import { User } from '../../domain/entities/user';
 import { UserRepository } from '../../domain/repositories/user';
 import { ValidationError } from '../../domain/errors/index';

@@ -1,4 +1,3 @@
-// backend/src/application/usecases/AddComment.ts
 import { NoteRepository } from '../../domain/repositories/note';
 import { NoteId } from '../../domain/value-objects/note-id';
 import { Comment } from '../../domain/entities/comment';

@@ -1,9 +1,8 @@
-// backend/src/application/usecases/JoinBoard.ts
 import { UserRepository } from '../../domain/repositories/user';
 import { BoardRepository } from '../../domain/repositories/board';
 import { Role, RoleType } from '../../domain/entities/role';
 import { BoardId } from '../../domain/value-objects/board-id';
-import { NotFoundError, PermissionError } from '../../domain/errors/index';
+import { NotFoundError } from '../../domain/errors/index';
 
 export interface JoinBoardInput {
     userId: string;
