@@ -2,7 +2,19 @@ import express, { Express } from 'express';
 import http from 'http';
 import cors from 'cors';
 import { Server } from 'socket.io';
+import swaggerUi from 'swagger-ui-express';
 import { env } from './infrastructure/enviroment/env';
+import { swaggerSpec, swaggerUiOptions } from './infrastructure/swagger/index';
+import { logger } from './infrastructure/logger/index';
+import { createBoardRoutes } from './presentation/routes/board';
+import { createNoteRoutes } from './presentation/routes/note';
+import { createCommentRoutes } from './presentation/routes/comment';
+import { createUserRoutes } from './presentation/routes/user';
+import { CreateBoard } from './application/usecases/create-board';
+import { CreateNote } from './application/usecases/create-note';
+import { UpdateNote } from './application/usecases/update-note';
+import { DeleteNote } from './application/usecases/delete-note';
+import { AddComment } from './application/usecases/add-comment';
 
 let isConnectedToDatabase = false;
 
@@ -10,12 +22,31 @@ export function setDatabaseStatus(status: boolean) {
     isConnectedToDatabase = status;
 }
 
-export function createApp(): { app: Express; server: http.Server; io: Server } {
+export function createApp(
+    createBoardUC: CreateBoard,
+    createNoteUC: CreateNote,
+    updateNoteUC: UpdateNote,
+    deleteNoteUC: DeleteNote,
+    addCommentUC: AddComment
+): { app: Express; server: http.Server; io: Server } {
     const app = express();
 
     app.use(cors());
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
+
+    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
+    logger.info('SWAGGER', `📚 API Docs disponible en http://localhost:${env.port || 3001}/api-docs`);
+
+    app.use((req, res, next) => {
+        logger.info('HTTP', `${req.method} ${req.path}`, { ip: req.ip });
+        next();
+    });
+
+    app.use('/api/boards', createBoardRoutes(createBoardUC));
+    app.use('/api/notes', createNoteRoutes(createNoteUC, updateNoteUC, deleteNoteUC));
+    app.use('/api/comments', createCommentRoutes(addCommentUC));
+    app.use('/api/users', createUserRoutes());
 
     app.get('/health', (_, res) => {
         const uptime = process.uptime();

@@ -21,8 +21,6 @@ async function startServer() {
         console.log('Starting backend server...');
         console.log(`Environment: ${env.nodeEnv}`);
 
-        const { server, io } = createApp();
-
         await initializeDatabase();
         console.log('Database initialized');
 
@@ -36,6 +34,14 @@ async function startServer() {
         const updateNoteUC = new UpdateNote(noteRepo);
         const deleteNoteUC = new DeleteNote(noteRepo);
         const addCommentUC = new AddComment(noteRepo);
+
+        const { server, io } = createApp(
+            createBoardUC,
+            createNoteUC,
+            updateNoteUC,
+            deleteNoteUC,
+            addCommentUC
+        );
         const joinUserUC = new JoinUser(userRepo);
 
         const boardService = new BoardService(boardRepo);
