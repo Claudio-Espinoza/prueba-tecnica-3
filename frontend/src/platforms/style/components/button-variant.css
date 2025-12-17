@@ -1,0 +1,10 @@
+/* Estados de validación */
+@custom-variant success (&[data-status="success"]);
+@custom-variant rejected (&[data-status="rejected"]);
+
+/* Variantes de tipo */
+@custom-variant primary (&[data-variant="primary"]);
+@custom-variant secondary (&[data-variant="secondary"]);
+@custom-variant tertiary (&[data-variant="tertiary"]);
+@custom-variant float (&[data-variant="float"]);
+@custom-variant link (&[data-variant="link"]);

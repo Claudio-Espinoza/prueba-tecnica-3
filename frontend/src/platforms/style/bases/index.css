@@ -1,0 +1,76 @@
+@import 'tailwindcss';
+
+@layer base {
+   h1 {
+      font-family: var(--font-headings);
+      letter-spacing: var(--leading-tight);
+      font-size: var(--text-header-1);
+      line-height: var(--tracking-normal);
+   }
+
+   h2 {
+      font-family: var(--font-headings);
+      letter-spacing: var(--leading-tight);
+      font-size: var(--text-header-2);
+      line-height: var(--tracking-normal);
+   }
+   h3 {
+      font-family: var(--font-headings);
+      letter-spacing: var(--leading-tight);
+      font-size: var(--text-header-3);
+      line-height: var(--tracking-normal);
+   }
+   h4 {
+      font-family: var(--font-headings);
+      letter-spacing: var(--leading-tight);
+      font-size: var(--text-header-4);
+      line-height: var(--tracking-normal);
+   }
+   h5 {
+      font-family: var(--font-headings);
+      letter-spacing: var(--leading-tight);
+      font-size: var(--text-header-5);
+      line-height: var(--tracking-normal);
+   }
+   h6 {
+      font-family: var(--font-headings);
+      letter-spacing: var(--leading-tight);
+      font-size: var(--text-header-6);
+      line-height: var(--tracking-normal);
+   }
+
+   p,
+   a {
+      font-family: var(--font-body);
+      letter-spacing: var(--leading-normal);
+   }
+
+   small {
+      font-family: var(--font-body);
+      letter-spacing: var(--leading-normal);
+      font-style: italic;
+   }
+
+   strong {
+      font-family: var(--font-body);
+      letter-spacing: var(--leading-normal);
+      font-weight: 600;
+      font-style: italic;
+   }
+
+   button,
+   label,
+   input,
+   table {
+      box-sizing: border-box;
+      font-family: var(--font-body);
+      letter-spacing: var(--leading-normal);
+      font-weight: 500;
+   }
+
+   *:focus {
+      outline: 2px solid var(--color-primary-500);
+      outline-offset: 2px;
+      border-radius: auto;
+   }
+}

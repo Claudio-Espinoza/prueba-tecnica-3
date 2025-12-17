@@ -1,0 +1,247 @@
+@layer components {
+   .button {
+      box-sizing: border-box;
+      width: fit-content;
+      height: fit-content;
+      padding: var(--spacing-2xs) var(--spacing-m) var(--spacing-2xs) var(--spacing-m);
+      cursor: pointer;
+      transition: all 0.1s ease;
+      border: 2px solid transparent;
+
+      @variant primary {
+         background-color: var(--color-primary-500);
+         border-radius: var(--radius-3xl);
+         color: var(--color-neutral-50);
+
+         @variant hover {
+            background-color: var(--color-primary-600);
+            transform: scale(1.05);
+         }
+         @variant active {
+            background-color: var(--color-primary-700);
+            transform: scale(0.95);
+         }
+         @variant disabled {
+            background-color: var(--color-neutral-400);
+            opacity: 0.4;
+            cursor: not-allowed;
+         }
+
+         @variant rejected {
+            background-color: var(--color-feedback-error-200);
+
+            @variant focus {
+               outline: 2px solid var(--color-feedback-error-200);
+               outline-offset: 2px;
+               border-radius: var(--radius-3xl);
+            }
+            @variant active {
+               background-color: var(--color-feedback-error-300);
+            }
+         }
+
+         @variant success {
+            background-color: var(--color-feedback-success-200);
+
+            @variant focus {
+               outline: 2px solid var(--color-feedback-success-200);
+               outline-offset: 2px;
+               border-radius: var(--radius-3xl);
+            }
+            @variant active {
+               background-color: var(--color-feedback-success-300);
+            }
+         }
+      }
+
+      @variant secondary {
+         border: solid 2px var(--color-primary-500);
+         border-radius: var(--radius-3xl);
+         color: var(--color-primary-500);
+
+         @variant hover {
+            background-color: var(--color-neutral-50);
+            transform: scale(1.05);
+         }
+         @variant active {
+            background-color: var(--color-neutral-100);
+            transform: scale(0.95);
+         }
+         @variant disabled {
+            background-color: var(--color-neutral-200);
+            opacity: 0.4;
+            cursor: not-allowed;
+         }
+
+         @variant rejected {
+            border: 2px solid var(--color-feedback-error-200);
+            color: var(--color-feedback-error-200);
+
+            @variant focus {
+               outline: 2px solid var(--color-feedback-error-200);
+               outline-offset: 2px;
+               border-radius: var(--radius-3xl);
+            }
+         }
+
+         @variant success {
+            border: 2px solid var(--color-feedback-success-200);
+            color: var(--color-feedback-success-200);
+
+            @variant focus {
+               outline: 2px solid var(--color-feedback-success-200);
+               outline-offset: 2px;
+               border-radius: var(--radius-3xl);
+            }
+         }
+      }
+
+      @variant tertiary {
+         border-radius: var(--radius-3xl);
+         color: var(--color-primary-500);
+
+         @variant hover {
+            background-color: var(--color-neutral-50);
+            transform: scale(1.05);
+         }
+         @variant active {
+            background-color: var(--color-neutral-100);
+            transform: scale(0.95);
+         }
+         @variant disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+         }
+
+         @variant rejected {
+            color: var(--color-feedback-error-200);
+
+            @variant focus {
+               outline: 2px solid var(--color-feedback-error-200);
+               outline-offset: 2px;
+               border-radius: var(--radius-3xl);
+            }
+         }
+
+         @variant success {
+            color: var(--color-feedback-success-200);
+
+            @variant focus {
+               outline: 2px solid var(--color-feedback-success-200);
+               outline-offset: 2px;
+               border-radius: var(--radius-3xl);
+            }
+         }
+      }
+
+      @variant float {
+         background-color: var(--color-primary-500);
+         border-radius: var(--radius-full);
+         color: var(--color-neutral-50);
+
+         width: 2.5rem;
+         height: 2.5rem;
+         display: flex;
+         align-items: center;
+         justify-content: center;
+
+         @variant hover {
+            background-color: var(--color-primary-600);
+            transform: scale(1.05);
+         }
+         @variant active {
+            background-color: var(--color-primary-700);
+            transform: scale(0.95);
+         }
+         @variant disabled {
+            background-color: var(--color-neutral-400);
+            opacity: 0.4;
+            cursor: not-allowed;
+         }
+
+         @variant rejected {
+            background-color: var(--color-feedback-error-200);
+
+            @variant focus {
+               outline: 2px solid var(--color-feedback-error-200);
+               outline-offset: 2px;
+               border-radius: var(--radius-3xl);
+            }
+            @variant active {
+               background-color: var(--color-feedback-error-300);
+            }
+         }
+
+         @variant success {
+            background-color: var(--color-feedback-success-200);
+
+            @variant focus {
+               outline: 2px solid var(--color-feedback-success-200);
+               outline-offset: 2px;
+               border-radius: var(--radius-3xl);
+            }
+            @variant active {
+               background-color: var(--color-feedback-success-300);
+            }
+         }
+      }
+
+      @variant link {
+         color: var(--color-primary-500);
+         background: transparent;
+         border: none;
+         border-radius: 0;
+         text-decoration: underline;
+         text-underline-offset: 2px;
+         padding: var(--spacing-2xs) var(--spacing-xs);
+
+         @variant hover {
+            color: var(--color-primary-600);
+            text-decoration: underline;
+            background: transparent;
+            transform: none;
+         }
+         @variant active {
+            color: var(--color-primary-700);
+            background: transparent;
+            transform: none;
+         }
+         @variant disabled {
+            color: var(--color-neutral-400);
+            text-decoration: none;
+            cursor: not-allowed;
+            opacity: 0.6;
+         }
+         @variant focus {
+            outline: 1px dotted var(--color-primary-500);
+            outline-offset: 2px;
+            border-radius: 0;
+         }
+
+         @variant rejected {
+            color: var(--color-feedback-error-200);
+            @variant hover {
+               color: var(--color-feedback-error-300);
+            }
+            @variant focus {
+               outline: 1px dotted var(--color-feedback-error-200);
+               outline-offset: 2px;
+               border-radius: 0;
+            }
+         }
+
+         @variant success {
+            color: var(--color-feedback-success-200);
+
+            @variant hover {
+               color: var(--color-feedback-success-300);
+            }
+            @variant focus {
+               outline: 1px dotted var(--color-feedback-success-200);
+               outline-offset: 2px;
+               border-radius: 0;
+            }
+         }
+      }
+   }
+}
