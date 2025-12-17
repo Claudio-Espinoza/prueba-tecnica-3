@@ -26,11 +26,16 @@ dist/
 # Environment files
 .env
 .env.*
+!.env.example
 
 # Editor
 .vscode/
 .DS_Store
+.idea/
 
 # Local cache
 .tmp/
 .cache/
+
+# TypeScript
+*.tsbuildinfo
