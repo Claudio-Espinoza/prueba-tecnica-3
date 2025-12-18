@@ -14,6 +14,15 @@ const canvasRef = ref<HTMLCanvasElement | null>(null);
 const activeUsersCount = ref<number>(0);
 const boardUsers = ref<any[]>([]);
 const debugInfo = ref<string>('Inicializando...');
+const participantListKey = ref<number>(0); // Key para forzar re-render de la lista
+
+// Función para generar un checksum simple de la lista
+const getListChecksum = (users: any[]): string => {
+   return JSON.stringify(users.map((u) => `${u.socketId}-${u.role}`)).length.toString();
+};
+
+let lastChecksum = '';
+let checkInterval: ReturnType<typeof setInterval> | null = null;
 
 const currentBoard = computed(() => boardStore.currentBoard);
 const isCreator = computed(() => {
@@ -230,6 +239,18 @@ onMounted(() => {
       socketService.socket?.emit('board:init', { boardId: currentBoard.value.id });
    }
 
+   // 🔄 Cron cada 5 segundos para detectar cambios en la lista de participantes
+   lastChecksum = getListChecksum(boardUsers.value);
+   checkInterval = setInterval(() => {
+      const currentChecksum = getListChecksum(boardUsers.value);
+      if (currentChecksum !== lastChecksum) {
+         console.log('🔄 Cambio detectado en la lista de participantes. Re-renderizando...');
+         lastChecksum = currentChecksum;
+         // Cambiar la key para forzar re-render del componente
+         participantListKey.value++;
+      }
+   }, 5000);
+
    // Inicializar canvas
    if (canvasRef.value) {
       const ctx = canvasRef.value.getContext('2d');
@@ -245,6 +266,14 @@ onMounted(() => {
 // Cleanup listeners cuando se unmount
 onUnmounted(() => {
    console.log('🛑 WorkplaceView desmontado');
+
+   // Limpiar el intervalo del cron
+   if (checkInterval) {
+      clearInterval(checkInterval);
+      checkInterval = null;
+      console.log('⏹️ Cron de verificación detenido');
+   }
+
    socketService.socket?.off('board:users-updated');
    socketService.socket?.off('board:user-joined');
    socketService.socket?.off('board:user-left');
@@ -306,7 +335,7 @@ onUnmounted(() => {
             </div>
 
             <!-- Lista de participantes -->
-            <div class="flex-1 overflow-y-auto space-y-2">
+            <div :key="participantListKey" class="flex-1 overflow-y-auto space-y-2">
                <div v-if="boardUsers.length === 0" class="text-center py-8 text-neutral-500">
                   <p>Sin participantes ({{ activeUsersCount }})</p>
                </div>
