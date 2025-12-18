@@ -29,7 +29,7 @@ export function registerUserHandlers(
             // Obtener solo los usuarios con sockets conectados actualmente
             const connectedSocketIds = Array.from(io.sockets.sockets.keys());
             const connectedUsers = [];
-            
+
             for (const socketId of connectedSocketIds) {
                 const user = await userRepository.findBySocketId(socketId);
                 if (user) {

@@ -33,7 +33,9 @@ export const useUserStore = defineStore('user', () => {
 
 
     const setOnlineUsers = (users: User[]) => {
-        onlineUsers.value = users;
+        // Forzar reactividad con nueva referencia
+        onlineUsers.value = [...users];
+        console.log('👥 Usuarios online actualizados:', onlineUsers.value.length);
     };
 
     const addOnlineUser = (user: User) => {

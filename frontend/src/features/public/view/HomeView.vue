@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { Icon } from '@iconify/vue';
 import Input from '@libraries/components/Input.vue';
 import { useBoardStore } from '../../../stores/boardStore';
 import { socketService } from '../../../services/socketService';
 
+const router = useRouter();
 const boardStore = useBoardStore();
 
 const boardName = ref('');
@@ -31,27 +33,54 @@ const createBoard = async () => {
    }
 };
 
-const joinBoard = (boardId: string) => {
-   socketService.joinBoard(boardId);
+const joinBoard = (board: any) => {
+   boardStore.setCurrentBoard(board);
+   socketService.joinBoard(board.id);
+   router.push('/workplace');
 };
 
 onMounted(() => {
+   console.log('🏠 HomeView montado');
    boardStore.setLoading(true);
    socketService.requestBoardList();
 
    socketService.onBoardCreated((data) => {
+      console.log('📋 Nuevo tablero creado:', data.name);
       boardStore.addBoard(data);
    });
 
    socketService.onBoardList((data) => {
+      console.log('📋 Lista de tableros recibida:', data.boards?.length || 0);
       boardStore.setBoards(data.boards || []);
       boardStore.setLoading(false);
    });
+
+   // Actualizar lista de boards cuando alguien se une a uno
+   // Escuchar cuando alguien entra a un board para actualizar contador
+   socketService.socket?.on('board:user-joined', () => {
+      console.log('👤 Alguien entró a un board, actualizando lista');
+      socketService.requestBoardList();
+   });
+
+   // Escuchar cuando alguien sale de un board para actualizar contador
+   socketService.socket?.on('board:user-left', () => {
+      console.log('👋 Alguien salió de un board, actualizando lista');
+      socketService.requestBoardList();
+   });
+
+   // Watch para forzar reactividad cuando los boards cambian
+   watch(
+      () => boardStore.boards,
+      (newBoards) => {
+         console.log('🔄 Boards reactivos cambiaron:', newBoards.length);
+      },
+      { deep: true }
+   );
 });
 </script>
 
 <template>
-   <div class="w-full h-full flex flex-col lg:flex-row gap-6 p-6 overflow-hidden">
+   <div class="flex-1 flex flex-row gap-6 pb-8 pt-4 overflow-hidden">
       <div class="w-200 flex flex-col gap-6 overflow-y-auto">
          <div
             class="w-full p-6 bg-blue-100/30 border-2 border-dashed rounded-2xl border-blue-400 flex flex-col gap-2 flex-shrink-0"
@@ -129,19 +158,45 @@ onMounted(() => {
             <div
                v-for="board in boardStore.boards"
                :key="board.id"
-               class="p-4 bg-white border border-neutral-300 rounded-lg hover:shadow-md transition cursor-pointer"
-               @click="joinBoard(board.id)"
+               class="group p-5 bg-white border-2 border-neutral-200 rounded-xl hover:border-blue-400 hover:shadow-lg transition cursor-pointer overflow-hidden relative"
+               @click="joinBoard(board)"
             >
-               <div class="flex items-start justify-between mb-2">
-                  <h3 class="text-lg font-semibold text-neutral-900">{{ board.name }}</h3>
-                  <Icon icon="mdi:chevron-right" class="w-5 h-5 text-blue-500" />
-               </div>
-               <p v-if="board.description" class="text-sm text-neutral-600 mb-3">
-                  {{ board.description }}
-               </p>
-               <div class="flex items-center justify-between text-xs text-neutral-500">
-                  <span>Por: {{ board.creatorName }}</span>
-                  <span>{{ board.users?.length || 0 }} usuarios</span>
+               <!-- Background gradient on hover -->
+               <div
+                  class="absolute inset-0 bg-gradient-to-br from-blue-50 to-transparent opacity-0 group-hover:opacity-100 transition"
+               ></div>
+
+               <div class="relative z-10">
+                  <div class="flex items-start justify-between mb-3">
+                     <h3
+                        class="text-lg font-bold text-neutral-900 group-hover:text-blue-600 transition"
+                     >
+                        {{ board.name }}
+                     </h3>
+                     <Icon
+                        icon="mdi:chevron-right"
+                        class="w-5 h-5 text-neutral-400 group-hover:text-blue-500 transition transform group-hover:translate-x-1"
+                     />
+                  </div>
+
+                  <p v-if="board.description" class="text-sm text-neutral-600 mb-4 line-clamp-2">
+                     {{ board.description }}
+                  </p>
+
+                  <div class="space-y-2">
+                     <div class="flex items-center gap-2 text-xs text-neutral-600">
+                        <Icon icon="mdi:account" class="w-4 h-4" />
+                        <span>{{ board.creatorName }}</span>
+                     </div>
+                     <div class="flex items-center gap-2 text-xs">
+                        <div class="w-2 h-2 bg-emerald-400 rounded-full"></div>
+                        <span class="text-emerald-600 font-medium"
+                           >{{ board.users?.length || 0 }} usuario{{
+                              board.users?.length !== 1 ? 's' : ''
+                           }}</span
+                        >
+                     </div>
+                  </div>
                </div>
             </div>
          </div>

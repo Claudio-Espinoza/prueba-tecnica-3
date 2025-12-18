@@ -7,6 +7,10 @@ export const SOCKET_EVENTS = {
     BOARD_USERS: 'board:users',
     BOARD_LIST: 'board:list',
     BOARD_CREATED: 'board:created',
+    BOARD_LEAVE: 'board:leave',
+    BOARD_USER_JOINED: 'board:user-joined',
+    BOARD_USER_LEFT: 'board:user-left',
+    BOARD_USERS_UPDATED: 'board:users-updated',
 
     // Note Events
     NOTE_CREATE: 'note:create',

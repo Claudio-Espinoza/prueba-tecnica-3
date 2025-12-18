@@ -2,6 +2,7 @@ import { Socket, Server } from 'socket.io';
 import { UserRepository } from '../../domain/repositories/user';
 import { SocketGateway } from '../gateway/socket';
 import { UserService } from '../../application/services/user';
+import { boardUsersService } from '../../infrastructure/board-users';
 
 export function handleDisconnect(
     socket: Socket,
@@ -12,12 +13,15 @@ export function handleDisconnect(
 ) {
     return async () => {
         try {
+            // Remover el usuario de todos los boards antes de eliminarlo
+            boardUsersService.removeUserFromAllBoards(socket.id);
+
             await userRepo.deleteBySocketId(socket.id);
 
             // Obtener solo los usuarios con sockets conectados actualmente
             const connectedSocketIds = Array.from(io.sockets.sockets.keys());
             const connectedUsers = [];
-            
+
             for (const socketId of connectedSocketIds) {
                 const user = await userRepo.findBySocketId(socketId);
                 if (user) {
@@ -29,6 +33,9 @@ export function handleDisconnect(
                 }
             }
 
+            // Obtener todos los boards con usuarios actualizados
+            const { BoardService } = require('../../application/services/board');
+            // Importar dinámicamente para evitar circular dependency
             io.emit('presence:users', { users: connectedUsers });
             console.log(`User disconnected: ${socket.id}, remaining connected users: ${connectedUsers.length}`);
         } catch (err) {

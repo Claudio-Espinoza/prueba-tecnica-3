@@ -54,7 +54,12 @@ export const useBoardStore = defineStore('board', () => {
     const boardCount = computed(() => boards.value.length);
 
     const setBoards = (newBoards: Board[]) => {
-        boards.value = newBoards;
+        // Forzar reactividad con nueva referencia
+        boards.value = newBoards.map(board => ({
+            ...board,
+            users: [...(board.users || [])]
+        }));
+        console.log('📋 Boards actualizados:', boards.value.length);
     };
 
     const addBoard = (board: Board) => {

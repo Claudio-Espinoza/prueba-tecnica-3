@@ -61,7 +61,7 @@ const handleLogout = async () => {
                   title="Cerrar sesión"
                >
                   <Icon
-                     icon="weui:setting-filled"
+                     icon="iconamoon:exit-fill"
                      class="w-10 h-10 text-neutral-900 cursor-pointer hover:bg-neutral-300 rounded-m hover:text-neutral-900 active:scale-95 transition-all"
                   />
                </button>

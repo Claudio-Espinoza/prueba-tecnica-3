@@ -153,6 +153,40 @@ class SocketService {
         }
     }
 
+    onBoardData(callback: (data: any) => void): void {
+        if (this.socket) {
+            this.socket.on('board:data', callback);
+        }
+    }
+
+    onBoardUserJoined(callback: (data: any) => void): void {
+        if (this.socket) {
+            this.socket.on('board:user-joined', callback);
+        }
+    }
+
+    onBoardUserLeft(callback: (data: any) => void): void {
+        if (this.socket) {
+            this.socket.on('board:user-left', callback);
+        }
+    }
+
+    onBoardUsersUpdated(callback: (data: any) => void): void {
+        if (this.socket) {
+            this.socket.on('board:users-updated', callback);
+        }
+    }
+
+    leaveBoard(boardId: string): void {
+        if (!this.socket) {
+            console.error('Socket no conectado');
+            return;
+        }
+
+        console.log(`👋 Leaving board: ${boardId}`);
+        this.socket.emit('board:leave', { boardId });
+    }
+
     isConnected(): boolean {
         return this.socket?.connected ?? false;
     }
