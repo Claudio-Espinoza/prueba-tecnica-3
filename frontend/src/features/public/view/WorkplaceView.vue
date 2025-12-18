@@ -138,66 +138,35 @@ onUnmounted(() => {
          <section
             class="flex-1 p-6 bg-neutral-50 border rounded-2xl border-neutral-400 flex flex-col gap-6 overflow-hidden"
          >
-            <!-- Header con título del workspace -->
-            <div class="flex flex-col gap-4 pb-4 border-b border-neutral-300">
-               <div class="flex items-center justify-between">
-                  <div class="flex-1">
-                     <h1 class="text-3xl font-bold text-neutral-900 mb-1">
-                        {{ currentBoard?.name || 'Espacio sin nombre' }}
-                     </h1>
-                     <p class="text-sm text-neutral-600">
-                        {{ currentBoard?.description || 'Sin descripción' }}
-                     </p>
-                  </div>
-                  <button
-                     @click="goBack()"
-                     class="flex flex-row cursor-pointer py-2 px-4 rounded-lg gap-2 items-center hover:bg-red-100 hover:text-red-900 active:scale-95 transition-all"
-                  >
-                     <Icon icon="lineicons:exit" class="w-5 h-5" />
-                     <span class="text-sm font-medium">Salir</span>
-                  </button>
-               </div>
-            </div>
-
             <canvas
                ref="canvasRef"
                class="size-full rounded-l cursor-crosshair border-2 border-dashed border-neutral-400"
             />
          </section>
          <section
-            class="h-full w-80 p-6 bg-neutral-50 border rounded-2xl border-neutral-400 flex flex-col gap-6 overflow-hidden"
+            class="h-full w-80 p-6 bg-neutral-50 border rounded-2xl border-neutral-400 flex flex-col gap-2 overflow-hidden"
          >
             <div class="flex flex-col gap-4 pb-4 border-b border-neutral-200">
-               <div class="flex items-center gap-2">
-                  <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <p class="text-xs font-medium text-green-600">ESPACIO ACTIVO</p>
-               </div>
+               <button
+                  @click="goBack()"
+                  class="flex flex-row cursor-pointer py-2 px-2 w-full bg-neutral-300 items-center justify-center rounded-lg gap-2 items-center hover:bg-red-100 hover:text-red-900 active:scale-95 transition-all"
+               >
+                  <Icon icon="lineicons:exit" class="w-5 h-5" />
+                  <span class="text-sm font-medium">Salir</span>
+               </button>
                <div>
                   <h2 class="text-xl font-bold text-neutral-900 mb-2 truncate">
-                     {{ currentBoard?.name || 'Espacio sin nombre' }}
+                     Titulo: {{ currentBoard?.name || 'Espacio sin nombre' }}
                   </h2>
-                  <p class="text-sm text-neutral-600 line-clamp-2">
-                     {{ currentBoard?.description || 'Sin descripción' }}
+                  <p class="text-sm text-neutral-700 line-clamp-2">
+                     Descrición: {{ currentBoard?.description || 'Sin descripción' }}
+                  </p>
+                  <p class="text-xs text-neutral-700 mt-2">
+                     Se pueden visualizar todos los participantes activos en este espacio de trabajo
                   </p>
                </div>
-               <div class="flex items-center gap-2 text-xs">
-                  <Icon icon="material-symbols:people" class="w-4 h-4 text-neutral-600" />
-                  <span class="text-neutral-600">
-                     {{ activeUsersCount }} usuario{{ activeUsersCount !== 1 ? 's' : '' }} activo{{
-                        activeUsersCount !== 1 ? 's' : ''
-                     }}
-                  </span>
-               </div>
             </div>
 
-            <div>
-               <p class="text-xs font-medium text-neutral-500 mb-2">PARTICIPANTES</p>
-               <p class="text-xs text-neutral-600">
-                  Se pueden visualizar todos los participantes activos en este espacio de trabajo
-               </p>
-            </div>
-
-            <!-- Leyenda de colores -->
             <div class="flex items-center gap-4 text-xs border-t border-b border-neutral-200 py-3">
                <div class="flex items-center gap-2">
                   <div class="w-3 h-3 bg-yellow-400 rounded-full"></div>
