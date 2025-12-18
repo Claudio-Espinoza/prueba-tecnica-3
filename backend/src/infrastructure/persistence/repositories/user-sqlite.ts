@@ -22,10 +22,13 @@ export class SQLiteUserRepository implements UserRepository {
             rolesMap.set(r.board_id, r.role);
         });
 
-        return new User(
-            { id: { value: row.id }, name: row.name, socketId: row.socket_id, roles: rolesMap },
-            { id: row.id }
-        );
+        return new User({
+            id: { value: row.id },
+            name: row.name,
+            socketId: row.socket_id,
+            connectedAt: new Date(row.connected_at),
+            roles: rolesMap
+        });
     }
 
     async findBySocketId(socketId: string): Promise<User | null> {
@@ -46,10 +49,13 @@ export class SQLiteUserRepository implements UserRepository {
             rolesMap.set(r.board_id, r.role);
         });
 
-        return new User(
-            { id: { value: row.id }, name: row.name, socketId: row.socket_id, roles: rolesMap },
-            { id: row.id }
-        );
+        return new User({
+            id: { value: row.id },
+            name: row.name,
+            socketId: row.socket_id,
+            connectedAt: new Date(row.connected_at),
+            roles: rolesMap
+        });
     }
 
     async findAll(): Promise<User[]> {
@@ -67,10 +73,13 @@ export class SQLiteUserRepository implements UserRepository {
                 rolesMap.set(r.board_id, r.role);
             });
 
-            users.push(new User(
-                { id: { value: row.id }, name: row.name, socketId: row.socket_id, roles: rolesMap },
-                { id: row.id }
-            ));
+            users.push(new User({
+                id: { value: row.id },
+                name: row.name,
+                socketId: row.socket_id,
+                connectedAt: new Date(row.connected_at),
+                roles: rolesMap
+            }));
         }
         return users;
     }
@@ -79,13 +88,14 @@ export class SQLiteUserRepository implements UserRepository {
         const id = user.getId().value;
         const name = user.getName();
         const socketId = user.getSocketId();
+        const connectedAt = user.props.connectedAt.toISOString();
 
         const existing = await getAsync('SELECT id FROM users WHERE id = ?', [id]);
 
         if (!existing) {
             await runAsync(
                 'INSERT INTO users (id, name, socket_id, connected_at) VALUES (?, ?, ?, ?)',
-                [id, name, socketId, new Date().toISOString()]
+                [id, name, socketId, connectedAt]
             );
         } else {
             await runAsync(
@@ -94,7 +104,7 @@ export class SQLiteUserRepository implements UserRepository {
             );
         }
 
-        const roles = user.getRoles();
+        const roles = user.getBoardRoles();
         for (const [boardId, role] of roles.entries()) {
             const existing = await getAsync(
                 'SELECT user_id FROM user_board_roles WHERE user_id = ? AND board_id = ?',
@@ -118,5 +128,12 @@ export class SQLiteUserRepository implements UserRepository {
     async delete(id: UserId): Promise<void> {
         await runAsync('DELETE FROM user_board_roles WHERE user_id = ?', [id.value]);
         await runAsync('DELETE FROM users WHERE id = ?', [id.value]);
+    }
+
+    async deleteBySocketId(socketId: string): Promise<void> {
+        const user = await this.findBySocketId(socketId);
+        if (user) {
+            await this.delete(user.getId());
+        }
     }
 }

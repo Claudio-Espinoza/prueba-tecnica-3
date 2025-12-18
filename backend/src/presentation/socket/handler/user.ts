@@ -25,7 +25,7 @@ export function registerUserHandlers(
                 success: true
             });
 
-            gateway.io.emit(SOCKET_EVENTS.USER_LIST_UPDATE, users);
+            gateway.io.emit(SOCKET_EVENTS.PRESENCE_USERS, { users });
         } catch (error) {
             console.error('Error joining user:', error);
             socket.emit('user:join:error', { error: 'Failed to join' });

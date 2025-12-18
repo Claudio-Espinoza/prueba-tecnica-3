@@ -54,7 +54,7 @@ onMounted(() => {
 
 <template>
    <div class="w-full h-full flex flex-col lg:flex-row gap-6 p-6 overflow-hidden">
-      <div class="w-full lg:w-1/2 flex flex-col gap-6 overflow-y-auto">
+      <div class="w-200 flex flex-col gap-6 overflow-y-auto">
          <div
             class="w-full p-6 bg-blue-100/30 border-2 border-dashed rounded-2xl border-blue-400 flex flex-col gap-2 flex-shrink-0"
          >
@@ -115,7 +115,7 @@ onMounted(() => {
       </div>
 
       <div
-         class="w-full lg:w-1/2 p-6 bg-neutral-50 border rounded-2xl border-neutral-400 flex flex-col gap-6 overflow-y-auto"
+         class="w-full p-6 bg-neutral-50 border rounded-2xl border-neutral-400 flex flex-col gap-6 overflow-y-auto"
       >
          <h2 class="text-2xl font-bold flex-shrink-0">Espacios disponibles</h2>
 

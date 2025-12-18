@@ -82,6 +82,10 @@ export const useUserStore = defineStore('user', () => {
         reset();
     };
 
+    const init = () => {
+        loadFromStorage();
+    };
+
     return {
         currentUser,
         onlineUsers,
@@ -101,6 +105,7 @@ export const useUserStore = defineStore('user', () => {
         setError,
         reset,
         loadFromStorage,
+        init,
         logout
     };
 });
