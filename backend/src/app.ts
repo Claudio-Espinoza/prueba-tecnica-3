@@ -62,8 +62,8 @@ export function createApp(
             },
             database: {
                 connected: isConnectedToDatabase,
-                url: env.supabaseUrl ? 'Configured' : 'Missing',
-                credentialsSet: !!env.supabaseServiceRoleKey
+                type: 'SQLite',
+                path: './data/collaboration.db'
             },
             memory: {
                 heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB`,

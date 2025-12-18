@@ -1,28 +1,28 @@
 export const MIGRATIONS = {
   boards: `
     CREATE TABLE IF NOT EXISTS boards (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       description TEXT DEFAULT '',
       owner_id TEXT NOT NULL,
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      updated_at TIMESTAMPTZ DEFAULT NOW()
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
     );
   `,
 
   users: `
     CREATE TABLE IF NOT EXISTS users (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       socket_id TEXT UNIQUE NOT NULL,
-      connected_at TIMESTAMPTZ DEFAULT NOW()
+      connected_at TEXT NOT NULL
     );
   `,
 
   user_board_roles: `
     CREATE TABLE IF NOT EXISTS user_board_roles (
-      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      board_id UUID NOT NULL REFERENCES boards(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      board_id TEXT NOT NULL REFERENCES boards(id) ON DELETE CASCADE,
       role TEXT CHECK (role IN ('viewer', 'editor')) DEFAULT 'viewer',
       PRIMARY KEY (user_id, board_id)
     );
@@ -30,26 +30,26 @@ export const MIGRATIONS = {
 
   notes: `
     CREATE TABLE IF NOT EXISTS notes (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      board_id UUID NOT NULL REFERENCES boards(id) ON DELETE CASCADE,
+      id TEXT PRIMARY KEY,
+      board_id TEXT NOT NULL REFERENCES boards(id) ON DELETE CASCADE,
       title TEXT NOT NULL,
       content TEXT DEFAULT '',
-      x INT NOT NULL,
-      y INT NOT NULL,
+      x REAL NOT NULL,
+      y REAL NOT NULL,
       updated_by TEXT NOT NULL,
-      version INT DEFAULT 0,
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      updated_at TIMESTAMPTZ DEFAULT NOW()
+      version INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
     );
   `,
 
   comments: `
     CREATE TABLE IF NOT EXISTS comments (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      note_id UUID NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+      id TEXT PRIMARY KEY,
+      note_id TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
       user_name TEXT NOT NULL,
       text TEXT NOT NULL,
-      created_at TIMESTAMPTZ DEFAULT NOW()
+      created_at TEXT NOT NULL
     );
   `,
 

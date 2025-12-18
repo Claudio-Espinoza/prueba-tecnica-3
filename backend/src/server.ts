@@ -1,9 +1,9 @@
-import { createApp } from './app';
+import { createApp, setDatabaseStatus } from './app';
 import { env } from './infrastructure/enviroment/env';
-import { initializeDatabase } from './infrastructure/persistence/config/client';
-import { SupabaseBoardRepository } from './infrastructure/persistence/repositories/board';
-import { SupabaseNoteRepository } from './infrastructure/persistence/repositories/note';
-import { SupabaseUserRepository } from './infrastructure/persistence/repositories/user';
+import { SQLiteBoardRepository } from './infrastructure/persistence/repositories/board-sqlite';
+import { SQLiteNoteRepository } from './infrastructure/persistence/repositories/note-sqlite';
+import { SQLiteUserRepository } from './infrastructure/persistence/repositories/user-sqlite';
+import { initializeDatabase, closeDatabase } from './infrastructure/persistence/config/sqlite';
 import { CreateBoard } from './application/usecases/create-board';
 import { JoinBoard } from './application/usecases/join-board';
 import { CreateNote } from './application/usecases/create-note';
@@ -21,12 +21,13 @@ async function startServer() {
         console.log('Starting backend server...');
         console.log(`Environment: ${env.nodeEnv}`);
 
+        console.log('Using SQLite database (persistent storage)');
         await initializeDatabase();
-        console.log('Database initialized');
+        setDatabaseStatus(true);
 
-        const boardRepo = new SupabaseBoardRepository();
-        const noteRepo = new SupabaseNoteRepository();
-        const userRepo = new SupabaseUserRepository();
+        const boardRepo = new SQLiteBoardRepository();
+        const noteRepo = new SQLiteNoteRepository();
+        const userRepo = new SQLiteUserRepository();
 
         const createBoardUC = new CreateBoard(boardRepo);
         const joinBoardUC = new JoinBoard(userRepo, boardRepo);
@@ -73,11 +74,13 @@ async function startServer() {
             console.log(`Health check: GET http://localhost:${port}/health\n`);
         });
 
-        process.on('SIGTERM', () => {
+        process.on('SIGTERM', async () => {
             console.log('SIGTERM received, shutting down gracefully...');
             server.close(() => {
-                console.log('Server closed');
-                process.exit(0);
+                closeDatabase().then(() => {
+                    console.log('Server closed');
+                    process.exit(0);
+                });
             });
         });
 

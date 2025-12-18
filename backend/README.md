@@ -20,7 +20,7 @@ Este backend proporciona una API para gestionar tableros colaborativos (similar 
 
 - **Node.js**: 16.x o superior
 - **npm**: 7.x o superior
-- **Supabase**: Cuenta con proyecto configurado
+- **SQLite3**: Incluido automáticamente
 - **TypeScript**: 4.x o superior
 
 ## 📦 Instalación
@@ -47,13 +47,8 @@ Crear archivo `.env`:
 PORT=3001
 NODE_ENV=development
 
-# Supabase
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-SUPABASE_ANON_KEY=your_anon_key
-
 # CORS
-CORS_ORIGIN=http://localhost:3000
+CORS_ORIGIN=http://localhost:5173
 
 # API
 API_VERSION=1.0.0

@@ -18,11 +18,18 @@ export function registerUserHandlers(
             });
 
             const users = await userService.getAllUsers();
-            gateway.broadcastPresence(users);
 
-            console.log(`User joined: ${user.getName()} (${socket.id})`);
-        } catch (err: any) {
-            gateway.sendError(socket, err.message);
+            socket.emit('user:joined', {
+                socketId: socket.id,
+                name: data.name,
+                success: true
+            });
+
+            gateway.io.emit(SOCKET_EVENTS.USER_LIST_UPDATE, users);
+        } catch (error) {
+            console.error('Error joining user:', error);
+            socket.emit('user:join:error', { error: 'Failed to join' });
         }
     });
 }
+
