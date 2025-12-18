@@ -568,10 +568,10 @@ onUnmounted(() => {
                         :note="note"
                         :isSelected="selectedNoteId === note.id"
                         :color="note.color"
-                        @select="selectNote"
+                        @select="(id) => selectNote(id)"
                         @update="(data) => updateNotePosition(data.id, data.x, data.y)"
-                        @delete="deleteNote"
-                        @comment="addCommentToNote"
+                        @delete="(id) => deleteNote(id)"
+                        @comment="(id) => addCommentToNote(id)"
                      />
                   </v-layer>
                </v-stage>

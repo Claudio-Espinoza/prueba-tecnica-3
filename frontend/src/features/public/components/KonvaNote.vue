@@ -67,6 +67,10 @@ const badgeConfig = computed(() => ({
 
 const selectNote = () => emit('select', props.note.id);
 const openComments = () => emit('comment', props.note.id);
+const deleteNoteHandler = (e: any) => {
+   e.evt?.preventDefault?.();
+   emit('delete', props.note.id);
+};
 </script>
 
 <template>
@@ -74,6 +78,7 @@ const openComments = () => emit('comment', props.note.id);
       :config="groupConfig"
       @click="selectNote"
       @dblclick="openComments"
+      @contextmenu="deleteNoteHandler"
       @dragend="(e: any) => emit('update', { id: note.id, x: e.target.x(), y: e.target.y() })"
    >
       <!-- Rectángulo de fondo -->
