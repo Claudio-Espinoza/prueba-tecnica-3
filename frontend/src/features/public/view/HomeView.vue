@@ -2,11 +2,9 @@
 import { ref, onMounted } from 'vue';
 import { Icon } from '@iconify/vue';
 import Input from '@libraries/components/Input.vue';
-import { useUserStore } from '../../../stores/userStore';
 import { useBoardStore } from '../../../stores/boardStore';
 import { socketService } from '../../../services/socketService';
 
-const userStore = useUserStore();
 const boardStore = useBoardStore();
 
 const boardName = ref('');
@@ -125,6 +123,27 @@ onMounted(() => {
 
          <div v-else-if="boardStore.boardCount === 0" class="text-center py-12">
             <p class="text-gray-600">No hay espacios creados aún. ¡Crea uno!</p>
+         </div>
+
+         <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div
+               v-for="board in boardStore.boards"
+               :key="board.id"
+               class="p-4 bg-white border border-neutral-300 rounded-lg hover:shadow-md transition cursor-pointer"
+               @click="joinBoard(board.id)"
+            >
+               <div class="flex items-start justify-between mb-2">
+                  <h3 class="text-lg font-semibold text-neutral-900">{{ board.name }}</h3>
+                  <Icon icon="mdi:chevron-right" class="w-5 h-5 text-blue-500" />
+               </div>
+               <p v-if="board.description" class="text-sm text-neutral-600 mb-3">
+                  {{ board.description }}
+               </p>
+               <div class="flex items-center justify-between text-xs text-neutral-500">
+                  <span>Por: {{ board.creatorName }}</span>
+                  <span>{{ board.users?.length || 0 }} usuarios</span>
+               </div>
+            </div>
          </div>
       </div>
    </div>

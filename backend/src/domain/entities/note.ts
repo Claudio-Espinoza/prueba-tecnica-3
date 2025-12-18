@@ -80,6 +80,10 @@ export class Note {
         return this.props.version;
     }
 
+    getCreatedAt(): string {
+        return this.props.createdAt.toISOString();
+    }
+
     updateContent(content: string, updatedBy: string): void {
         if (!content || content.trim() === '') {
             throw new Error('Content required');

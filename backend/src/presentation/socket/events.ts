@@ -5,6 +5,8 @@ export const SOCKET_EVENTS = {
     BOARD_INIT: 'board:init',
     BOARD_DATA: 'board:data',
     BOARD_USERS: 'board:users',
+    BOARD_LIST: 'board:list',
+    BOARD_CREATED: 'board:created',
 
     // Note Events
     NOTE_CREATE: 'note:create',

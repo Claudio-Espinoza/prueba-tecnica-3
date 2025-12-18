@@ -27,8 +27,25 @@ export function registerBoardHandlers(
                 ownerId: user.getId().value
             });
 
-            socket.emit(SOCKET_EVENTS.BOARD_DATA, board.toJSON());
+            const boardData = board.toJSON();
+
+            // Emit to the creator
+            socket.emit(SOCKET_EVENTS.BOARD_CREATED, boardData);
+
+            // Broadcast to all users (except creator)
+            socket.broadcast.emit(SOCKET_EVENTS.BOARD_CREATED, boardData);
+
             console.log(`Board created: ${board.getId().value} by ${user.getName()}`);
+        } catch (err: any) {
+            gateway.sendError(socket, err.message);
+        }
+    });
+
+    socket.on(SOCKET_EVENTS.BOARD_LIST, async () => {
+        try {
+            const boards = await boardService.getAllBoards();
+            socket.emit(SOCKET_EVENTS.BOARD_LIST, { boards, success: true });
+            console.log(`Board list requested by ${socket.id}, found ${boards.length} boards`);
         } catch (err: any) {
             gateway.sendError(socket, err.message);
         }

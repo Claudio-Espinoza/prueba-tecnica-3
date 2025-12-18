@@ -1,6 +1,7 @@
 import { Board } from '../../../domain/entities/board.js';
 import { BoardRepository } from '../../../domain/repositories/board.js';
 import { BoardId } from '../../../domain/value-objects/board-id.js';
+import { UserId } from '../../../domain/value-objects/user-id.js';
 import { allAsync, getAsync, runAsync } from '../config/sqlite.js';
 
 export class SQLiteBoardRepository implements BoardRepository {
@@ -12,25 +13,14 @@ export class SQLiteBoardRepository implements BoardRepository {
 
         if (!row) return null;
 
-        const userRows = await allAsync(
-            `SELECT DISTINCT ubr.user_id FROM user_board_roles ubr WHERE ubr.board_id = ?`,
-            [id.value]
-        );
-
-        const users = userRows.map((r: any) => r.user_id);
-
-        return new Board(
-            {
-                id: { value: row.id },
-                name: row.name,
-                description: row.description || '',
-                ownerId: row.owner_id,
-                users,
-                createdAt: row.created_at,
-                updatedAt: row.updated_at
-            },
-            { id: row.id }
-        );
+        return new Board({
+            id: new BoardId(row.id),
+            name: row.name,
+            description: row.description || '',
+            ownerId: new UserId(row.owner_id),
+            createdAt: new Date(row.created_at),
+            updatedAt: new Date(row.updated_at)
+        });
     }
 
     async findAll(): Promise<Board[]> {
@@ -40,25 +30,14 @@ export class SQLiteBoardRepository implements BoardRepository {
 
         const boards: Board[] = [];
         for (const row of rows) {
-            const userRows = await allAsync(
-                'SELECT DISTINCT ubr.user_id FROM user_board_roles ubr WHERE ubr.board_id = ?',
-                [row.id]
-            );
-
-            const users = userRows.map((r: any) => r.user_id);
-
-            boards.push(new Board(
-                {
-                    id: { value: row.id },
-                    name: row.name,
-                    description: row.description || '',
-                    ownerId: row.owner_id,
-                    users,
-                    createdAt: row.created_at,
-                    updatedAt: row.updated_at
-                },
-                { id: row.id }
-            ));
+            boards.push(new Board({
+                id: new BoardId(row.id),
+                name: row.name,
+                description: row.description || '',
+                ownerId: new UserId(row.owner_id),
+                createdAt: new Date(row.created_at),
+                updatedAt: new Date(row.updated_at)
+            }));
         }
         return boards;
     }
@@ -71,35 +50,50 @@ export class SQLiteBoardRepository implements BoardRepository {
 
         const boards: Board[] = [];
         for (const row of rows) {
-            const userRows = await allAsync(
-                'SELECT DISTINCT ubr.user_id FROM user_board_roles ubr WHERE ubr.board_id = ?',
-                [row.id]
-            );
-
-            const users = userRows.map((r: any) => r.user_id);
-
-            boards.push(new Board(
-                {
-                    id: { value: row.id },
-                    name: row.name,
-                    description: row.description || '',
-                    ownerId: row.owner_id,
-                    users,
-                    createdAt: row.created_at,
-                    updatedAt: row.updated_at
-                },
-                { id: row.id }
-            ));
+            boards.push(new Board({
+                id: new BoardId(row.id),
+                name: row.name,
+                description: row.description || '',
+                ownerId: new UserId(row.owner_id),
+                createdAt: new Date(row.created_at),
+                updatedAt: new Date(row.updated_at)
+            }));
         }
         return boards;
+    }
+
+    async create(board: Board): Promise<void> {
+        const id = board.getId().value;
+        const name = board.getName();
+        const description = board.getDescription();
+        const ownerId = board.getOwnerId().value;
+        const createdAt = board.props.createdAt.toISOString();
+        const updatedAt = new Date().toISOString();
+
+        await runAsync(
+            'INSERT INTO boards (id, name, description, owner_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+            [id, name, description, ownerId, createdAt, updatedAt]
+        );
+    }
+
+    async update(board: Board): Promise<void> {
+        const id = board.getId().value;
+        const name = board.getName();
+        const description = board.getDescription();
+        const updatedAt = new Date().toISOString();
+
+        await runAsync(
+            'UPDATE boards SET name = ?, description = ?, updated_at = ? WHERE id = ?',
+            [name, description, updatedAt, id]
+        );
     }
 
     async save(board: Board): Promise<void> {
         const id = board.getId().value;
         const name = board.getName();
         const description = board.getDescription();
-        const ownerId = board.getOwnerId();
-        const createdAt = board.getCreatedAt();
+        const ownerId = board.getOwnerId().value;
+        const createdAt = board.props.createdAt.toISOString();
         const updatedAt = new Date().toISOString();
 
         const existing = await getAsync('SELECT id FROM boards WHERE id = ?', [id]);
@@ -114,31 +108,6 @@ export class SQLiteBoardRepository implements BoardRepository {
                 'UPDATE boards SET name = ?, description = ?, updated_at = ? WHERE id = ?',
                 [name, description, updatedAt, id]
             );
-        }
-
-        const users = board.getUsers();
-        const existingUsers = await allAsync(
-            'SELECT user_id FROM user_board_roles WHERE board_id = ?',
-            [id]
-        );
-        const existingUserIds = existingUsers.map((r: any) => r.user_id);
-
-        for (const userId of users) {
-            if (!existingUserIds.includes(userId)) {
-                await runAsync(
-                    'INSERT INTO user_board_roles (user_id, board_id, role) VALUES (?, ?, ?)',
-                    [userId, id, userId === ownerId ? 'editor' : 'viewer']
-                );
-            }
-        }
-
-        for (const userId of existingUserIds) {
-            if (!users.includes(userId)) {
-                await runAsync(
-                    'DELETE FROM user_board_roles WHERE user_id = ? AND board_id = ?',
-                    [userId, id]
-                );
-            }
         }
     }
 

@@ -1,6 +1,7 @@
 import { User } from '../../../domain/entities/user.js';
 import { UserRepository } from '../../../domain/repositories/user.js';
 import { UserId } from '../../../domain/value-objects/user-id.js';
+import { Role } from '../../../domain/entities/role.js';
 import { allAsync, getAsync, runAsync } from '../config/sqlite.js';
 
 export class SQLiteUserRepository implements UserRepository {
@@ -17,13 +18,13 @@ export class SQLiteUserRepository implements UserRepository {
             [id.value]
         );
 
-        const rolesMap = new Map<string, string>();
+        const rolesMap = new Map<string, Role>();
         roles.forEach((r: any) => {
-            rolesMap.set(r.board_id, r.role);
+            rolesMap.set(r.board_id, r.role === 'editor' ? Role.editor() : Role.viewer());
         });
 
         return new User({
-            id: { value: row.id },
+            id: new UserId(row.id),
             name: row.name,
             socketId: row.socket_id,
             connectedAt: new Date(row.connected_at),
@@ -44,13 +45,13 @@ export class SQLiteUserRepository implements UserRepository {
             [row.id]
         );
 
-        const rolesMap = new Map<string, string>();
+        const rolesMap = new Map<string, Role>();
         roles.forEach((r: any) => {
-            rolesMap.set(r.board_id, r.role);
+            rolesMap.set(r.board_id, r.role === 'editor' ? Role.editor() : Role.viewer());
         });
 
         return new User({
-            id: { value: row.id },
+            id: new UserId(row.id),
             name: row.name,
             socketId: row.socket_id,
             connectedAt: new Date(row.connected_at),
@@ -68,13 +69,13 @@ export class SQLiteUserRepository implements UserRepository {
                 [row.id]
             );
 
-            const rolesMap = new Map<string, string>();
+            const rolesMap = new Map<string, Role>();
             roles.forEach((r: any) => {
-                rolesMap.set(r.board_id, r.role);
+                rolesMap.set(r.board_id, r.role === 'editor' ? Role.editor() : Role.viewer());
             });
 
             users.push(new User({
-                id: { value: row.id },
+                id: new UserId(row.id),
                 name: row.name,
                 socketId: row.socket_id,
                 connectedAt: new Date(row.connected_at),
@@ -111,15 +112,17 @@ export class SQLiteUserRepository implements UserRepository {
                 [id, boardId]
             );
 
+            const roleStr = role.isEditor() ? 'editor' : 'viewer';
+
             if (!existing) {
                 await runAsync(
                     'INSERT INTO user_board_roles (user_id, board_id, role) VALUES (?, ?, ?)',
-                    [id, boardId, role]
+                    [id, boardId, roleStr]
                 );
             } else {
                 await runAsync(
                     'UPDATE user_board_roles SET role = ? WHERE user_id = ? AND board_id = ?',
-                    [role, id, boardId]
+                    [roleStr, id, boardId]
                 );
             }
         }

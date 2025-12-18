@@ -45,6 +45,10 @@ export class Board {
         return this.props.ownerId;
     }
 
+    getCreatedAt(): string {
+        return this.props.createdAt.toISOString();
+    }
+
     updateInfo(name: string, description: string): void {
         if (!name || name.trim() === '') {
             throw new Error('Board name required');

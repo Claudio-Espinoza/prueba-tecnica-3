@@ -45,7 +45,7 @@ async function startServer() {
         );
         const joinUserUC = new JoinUser(userRepo);
 
-        const boardService = new BoardService(boardRepo);
+        const boardService = new BoardService(boardRepo, userRepo);
         const noteService = new NoteService(noteRepo);
         const userService = new UserService(userRepo);
 
