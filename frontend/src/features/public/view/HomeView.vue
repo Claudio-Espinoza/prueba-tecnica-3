@@ -34,9 +34,16 @@ const createBoard = async () => {
 };
 
 const joinBoard = (board: any) => {
+   console.log('🚪 Joining board:', board.name);
    boardStore.setCurrentBoard(board);
    socketService.joinBoard(board.id);
-   router.push('/workplace');
+
+   // Navegar a workplace inmediatamente
+   // WorkplaceView emitirá board:init cuando se monte para obtener los datos actualizados
+   setTimeout(() => {
+      console.log('📍 Navegando a /workplace');
+      router.push('/workplace');
+   }, 100);
 };
 
 onMounted(() => {

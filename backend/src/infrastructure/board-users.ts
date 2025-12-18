@@ -16,17 +16,24 @@ class BoardUsersService {
      * Agregar un usuario a un board
      */
     addUserToBoard(boardId: string, user: BoardUser): void {
+        console.log(`🔍 addUserToBoard llamado: boardId=${boardId}, user=${user.name}, socketId=${user.socketId}`);
+        
         if (!this.boardUsers.has(boardId)) {
+            console.log(`  → Creando primera entrada para board ${boardId}`);
             this.boardUsers.set(boardId, []);
         }
         
         const users = this.boardUsers.get(boardId)!;
         const exists = users.some(u => u.socketId === user.socketId);
         
-        if (!exists) {
-            users.push(user);
-            console.log(`✅ Usuario ${user.name} agregado a board ${boardId}. Total: ${users.length}`);
+        if (exists) {
+            console.log(`  ⚠️ Usuario ${user.name} ya existe en board ${boardId}`);
+            return;
         }
+        
+        users.push(user);
+        console.log(`✅ Usuario ${user.name} agregado a board ${boardId}. Total en board: ${users.length}`);
+        console.log(`   Map state: ${this.boardUsers.size} boards totales`);
     }
 
     /**
@@ -53,7 +60,25 @@ class BoardUsersService {
      * Obtener usuarios de un board
      */
     getUsersInBoard(boardId: string): BoardUser[] {
-        return this.boardUsers.get(boardId) || [];
+        const users = this.boardUsers.get(boardId) || [];
+        console.log(`🔍 getUsersInBoard(${boardId}): ${users.length} usuarios`, users.map(u => u.name));
+        return users;
+    }
+
+    /**
+     * Actualizar rol de un usuario en un board
+     */
+    updateUserRole(boardId: string, socketId: string, newRole: 'editor' | 'viewer'): boolean {
+        const users = this.boardUsers.get(boardId);
+        if (users) {
+            const user = users.find(u => u.socketId === socketId);
+            if (user) {
+                user.role = newRole;
+                console.log(`🔄 Rol actualizado para ${user.name} a ${newRole} en board ${boardId}`);
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -77,10 +102,19 @@ class BoardUsersService {
      * Obtener información de todos los boards con sus usuarios
      */
     getAllBoardsWithUsers(boards: any[]): any[] {
-        return boards.map(board => ({
-            ...board,
-            users: this.getUsersInBoard(board.id)
-        }));
+        console.log(`🔍 getAllBoardsWithUsers: procesando ${boards.length} boards`);
+        console.log(`   Map total: ${this.boardUsers.size} entries`);
+        
+        const result = boards.map(board => {
+            const users = this.getUsersInBoard(board.id);
+            console.log(`   Board "${board.name}" (${board.id}): ${users.length} usuarios`);
+            return {
+                ...board,
+                users: users
+            };
+        });
+        
+        return result;
     }
 
     /**

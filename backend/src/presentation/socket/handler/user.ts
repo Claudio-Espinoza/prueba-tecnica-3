@@ -48,5 +48,28 @@ export function registerUserHandlers(
             socket.emit('user:join:error', { error: 'Failed to join' });
         }
     });
+
+    socket.on(SOCKET_EVENTS.USER_UPDATE_ROLE, async (data: { boardId: string; userId: string; newRole: string }) => {
+        try {
+            const user = await userRepository.findBySocketId(socket.id);
+            if (!user) throw new Error('User not found');
+
+            // Verificar que el usuario que solicita el cambio sea el creador del board
+            // (Esta verificación se puede mejorar si hay un servicio que lo valide)
+            console.log(`User ${user.getName()} requesting role change for ${data.userId} to ${data.newRole}`);
+
+            // Emitir cambio de rol a todos en la sala
+            io.to(data.boardId).emit(SOCKET_EVENTS.USER_ROLE_UPDATED, {
+                boardId: data.boardId,
+                userId: data.userId,
+                role: data.newRole
+            });
+
+            console.log(`Role updated for user ${data.userId} to ${data.newRole} in board ${data.boardId}`);
+        } catch (error) {
+            console.error('Error updating user role:', error);
+            socket.emit('user:role:error', { error: 'Failed to update role' });
+        }
+    });
 }
 

@@ -13,6 +13,7 @@ const userStore = useUserStore();
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 const activeUsersCount = ref<number>(0);
 const boardUsers = ref<any[]>([]);
+const debugInfo = ref<string>('Inicializando...');
 
 const currentBoard = computed(() => boardStore.currentBoard);
 const isCreator = computed(() => {
@@ -20,85 +21,214 @@ const isCreator = computed(() => {
    return currentBoard.value.creatorName === userStore.currentUser.name;
 });
 
+// Recuperar board del localStorage si existe
+const loadBoardFromStorage = () => {
+   try {
+      const stored = localStorage.getItem('currentBoard');
+      if (stored) {
+         const board = JSON.parse(stored);
+         boardStore.setCurrentBoard(board);
+         console.log('🔄 Board restaurado desde localStorage:', board);
+         return board;
+      }
+   } catch (e) {
+      console.error('Error loading board from storage:', e);
+   }
+   return null;
+};
+
+// Guardar board en localStorage
+const saveBoardToStorage = (board: any) => {
+   try {
+      localStorage.setItem('currentBoard', JSON.stringify(board));
+      console.log('💾 Board guardado en localStorage');
+   } catch (e) {
+      console.error('Error saving board to storage:', e);
+   }
+};
+
 const participantColor = (index: number) => {
    const colors = ['bg-yellow-400', 'bg-red-400', 'bg-blue-400', 'bg-green-400', 'bg-purple-400'];
    return colors[index % colors.length];
 };
 
+const toggleUserRole = (user: any) => {
+   if (!isCreator.value) return;
+
+   console.log('🔄 Toggling role para:', user.name);
+   const newRole = user.role === 'editor' ? 'viewer' : 'editor';
+
+   socketService.socket?.emit('user:update-role', {
+      boardId: currentBoard.value?.id,
+      userId: user.socketId,
+      newRole: newRole,
+   });
+
+   user.role = newRole;
+};
+
 const goBack = () => {
    socketService.socket?.emit('board:leave', { boardId: currentBoard.value?.id });
    boardStore.setCurrentBoard(null);
+   localStorage.removeItem('currentBoard');
+   console.log('🗑️ Board removido de localStorage');
    router.back();
 };
 
-// Watch para actualizar usuarios cuando cambia el board
-watch(
-   () => currentBoard.value,
-   (newBoard) => {
-      if (newBoard?.users) {
-         boardUsers.value = newBoard.users;
-         activeUsersCount.value = newBoard.users.length;
-         console.log('👥 Board actualizado con usuarios:', newBoard.users);
-      }
-   },
-   { immediate: true }
-);
-
-// Listeners para actualizaciones en tiempo real
+// DEFINIR LISTENERS PRIMERO (fuera de onMounted para que se registren inmediatamente)
+let listenersSetup = false;
 const setupRealtimeListeners = () => {
-   // Escuchar actualizaciones de usuarios en el workspace
+   if (listenersSetup) {
+      console.log('⚠️ Listeners ya configurados');
+      return;
+   }
+   listenersSetup = true;
+   console.log('🎯 Registrando listeners de tiempo real');
+
    socketService.socket?.on('board:users-updated', (data) => {
       console.log('🔄 board:users-updated recibido:', data);
-      if (data.boardId === currentBoard.value?.id) {
-         console.log('🔄 Usuarios actualizados en el workspace:', data.users);
-         // Forzar reactividad con nueva referencia
+      console.log('📍 Board IDs: actual=', currentBoard.value?.id, 'received=', data.boardId);
+
+      // Actualizar si el board ID coincide con el actual
+      if (data.boardId === currentBoard.value?.id && data.users && Array.isArray(data.users)) {
+         console.log('🔄 Usuarios actualizados para este board:', data.users.length, 'usuarios');
          boardUsers.value = [...data.users];
          activeUsersCount.value = data.users.length;
+         debugInfo.value = `✅ Actualizado | ${activeUsersCount.value} usuarios`;
          console.log('✅ Contador actualizado a:', activeUsersCount.value);
+      } else if (!currentBoard.value?.id) {
+         console.log('⚠️ Sin board actual asignado aún');
+      } else if (data.boardId !== currentBoard.value.id) {
+         console.log('ℹ️ Evento de otro board (', data.boardId, '!==', currentBoard.value.id, ')');
       }
    });
 
-   // Escuchar cuando alguien se une
    socketService.socket?.on('board:user-joined', (data) => {
       console.log('👤 board:user-joined recibido:', data);
-      if (data.boardId === currentBoard.value?.id) {
+      console.log(
+         '👤 Verificación: boardId=',
+         data.boardId,
+         ', currentBoard=',
+         currentBoard.value?.id
+      );
+      if (!data.boardId || !currentBoard.value?.id) {
+         console.warn('⚠️ IDs no disponibles, almacenando evento');
+         return;
+      }
+      if (data.boardId === currentBoard.value.id) {
          console.log('👤 Usuario se unió:', data.user.name);
          const userExists = boardUsers.value.some((u) => u.socketId === data.user.socketId);
          if (!userExists) {
             boardUsers.value = [...boardUsers.value, data.user];
             activeUsersCount.value = boardUsers.value.length;
+            debugInfo.value = `👤 Usuario unido | Total: ${activeUsersCount.value}`;
             console.log('✅ Usuario agregado. Total:', boardUsers.value.length);
          }
+      } else {
+         console.log('ℹ️ Evento de otro board:', data.boardId);
       }
    });
 
-   // Escuchar cuando alguien se va
    socketService.socket?.on('board:user-left', (data) => {
       console.log('👋 board:user-left recibido:', data);
       if (data.boardId === currentBoard.value?.id) {
          console.log('👋 Usuario se fue');
          boardUsers.value = boardUsers.value.filter((u) => u.socketId !== data.userId);
          activeUsersCount.value = boardUsers.value.length;
+         debugInfo.value = `👋 Usuario salió | Total: ${activeUsersCount.value}`;
          console.log('✅ Usuario removido. Total:', boardUsers.value.length);
       }
    });
 
-   // Escuchar cuando se carga el board
    socketService.socket?.on('board:data', (data) => {
-      if (currentBoard.value?.id === data.board?.id) {
-         console.log('📊 Datos del board cargados:', data.board);
-         if (data.board?.users && data.board.users.length > 0) {
-            console.log('📊 Usuarios en el board:', data.board.users);
+      console.log('📊 Datos del board recibido:', data);
+      console.log('📊 Board object:', data?.board);
+      console.log('📊 Board ID:', data?.board?.id);
+      console.log('📊 Board users property exists:', 'users' in (data?.board || {}));
+      console.log('📊 Board users array:', data?.board?.users);
+      console.log('📊 Users length:', data?.board?.users?.length);
+
+      if (data?.board) {
+         // Actualizar el board en el store Y en localStorage
+         boardStore.setCurrentBoard(data.board);
+         saveBoardToStorage(data.board);
+
+         console.log(
+            '📊 Verificación: data.board.users es array?',
+            Array.isArray(data.board.users)
+         );
+
+         if (data.board.users && Array.isArray(data.board.users) && data.board.users.length > 0) {
+            console.log('📊 Usuarios en el board:', data.board.users.length, 'usuarios');
+            console.log('📊 Detalles de usuarios:', data.board.users);
             boardUsers.value = [...data.board.users];
             activeUsersCount.value = data.board.users.length;
+            debugInfo.value = `✅ Cargado | Usuarios: ${activeUsersCount.value}`;
             console.log('✅ Usuarios actualizados desde board:data:', activeUsersCount.value);
+         } else {
+            console.warn('⚠️ No hay usuarios en board:data o array vacío');
+            console.warn(
+               '⚠️ Condición: users=',
+               data.board.users,
+               'isArray=',
+               Array.isArray(data.board.users),
+               'length=',
+               data.board.users?.length
+            );
+            boardUsers.value = [];
+            activeUsersCount.value = 0;
+            debugInfo.value = '⚠️ Sin usuarios en datos';
          }
+      }
+   });
+
+   socketService.socket?.on('user:role-updated', (data) => {
+      console.log('🔄 Rol actualizado:', data);
+      const user = boardUsers.value.find((u) => u.socketId === data.userId);
+      if (user) {
+         user.role = data.role;
+         debugInfo.value = `🔄 Rol actualizado: ${user.name} → ${data.role}`;
+         console.log(`✅ Rol de ${user.name} actualizado a ${data.role}`);
       }
    });
 };
 
+// Inicializar listeners inmediatamente a nivel de setup
+setupRealtimeListeners();
+
+// Watch para actualizar cuando cambia el board
+watch(
+   () => currentBoard.value,
+   (newBoard) => {
+      console.log('👀 Watch: currentBoard cambió:', newBoard);
+      if (!newBoard) {
+         boardUsers.value = [];
+         activeUsersCount.value = 0;
+      }
+   },
+   { immediate: false }
+);
+
 onMounted(() => {
    console.log('🚀 WorkplaceView montado');
+
+   // Si no hay board en el store, intentar recuperar del localStorage
+   if (!currentBoard.value) {
+      console.log('⚠️ No hay board en store, intentando recuperar del localStorage');
+      const restoredBoard = loadBoardFromStorage();
+      if (restoredBoard) {
+         console.log('✅ Board restaurado:', restoredBoard);
+         boardStore.setCurrentBoard(restoredBoard);
+         // Re-unirse al board via socket si fue restaurado
+         socketService.joinBoard(restoredBoard.id);
+      }
+   } else {
+      console.log('✅ Board ya existe en store:', currentBoard.value);
+      saveBoardToStorage(currentBoard.value);
+      // Pedir datos actualizados del board (usuarios, notas, etc)
+      console.log('📍 Pidiendo datos del board:', currentBoard.value.id);
+      socketService.socket?.emit('board:init', { boardId: currentBoard.value.id });
+   }
 
    // Inicializar canvas
    if (canvasRef.value) {
@@ -110,16 +240,6 @@ onMounted(() => {
          ctx.fillRect(0, 0, canvasRef.value.width, canvasRef.value.height);
       }
    }
-
-   // Setup listeners para actualizaciones en tiempo real
-   setupRealtimeListeners();
-
-   // Inicializar usuarios desde el board actual
-   if (currentBoard.value?.users) {
-      boardUsers.value = currentBoard.value.users;
-      activeUsersCount.value = currentBoard.value.users.length;
-      console.log('👥 Usuarios inicializados:', currentBoard.value.users);
-   }
 });
 
 // Cleanup listeners cuando se unmount
@@ -129,6 +249,7 @@ onUnmounted(() => {
    socketService.socket?.off('board:user-joined');
    socketService.socket?.off('board:user-left');
    socketService.socket?.off('board:data');
+   socketService.socket?.off('user:role-updated');
 });
 </script>
 
@@ -178,10 +299,16 @@ onUnmounted(() => {
                </div>
             </div>
 
+            <!-- Debug Info -->
+            <div class="text-xs bg-blue-100 p-2 rounded text-blue-900">
+               <p>{{ debugInfo }}</p>
+               <p>Usuarios cargados: {{ boardUsers.length }}</p>
+            </div>
+
             <!-- Lista de participantes -->
             <div class="flex-1 overflow-y-auto space-y-2">
                <div v-if="boardUsers.length === 0" class="text-center py-8 text-neutral-500">
-                  <p>Sin participantes</p>
+                  <p>Sin participantes ({{ activeUsersCount }})</p>
                </div>
                <div
                   v-for="(user, index) in boardUsers"
@@ -204,19 +331,21 @@ onUnmounted(() => {
                         </p>
                      </div>
                   </div>
+                  <!-- Solo el creador puede cambiar roles -->
                   <button
                      v-if="isCreator"
-                     class="ml-2 px-3 py-1 text-sm font-medium rounded-lg border border-neutral-300 hover:bg-neutral-100 transition flex-shrink-0"
+                     @click="toggleUserRole(user)"
+                     class="ml-2 px-3 py-1 text-sm font-medium rounded-lg border border-neutral-300 hover:bg-neutral-100 transition flex-shrink-0 cursor-pointer"
                   >
-                     {{ user.role === 'editor' ? 'Editar' : 'Visualizar' }}
+                     {{ user.role === 'editor' ? '👁️ A Visualizar' : '✏️ A Editor' }}
                   </button>
-                  <button
+                  <!-- Otros usuarios no pueden cambiar roles -->
+                  <span
                      v-else
                      class="ml-2 px-3 py-1 text-sm font-medium text-neutral-600 rounded-lg border border-neutral-300 bg-neutral-50"
-                     disabled
                   >
-                     {{ user.role === 'editor' ? 'Editar' : 'Visualizar' }}
-                  </button>
+                     {{ user.role === 'editor' ? 'Editor' : 'Visualizador' }}
+                  </span>
                </div>
             </div>
 

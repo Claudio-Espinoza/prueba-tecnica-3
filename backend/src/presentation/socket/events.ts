@@ -27,6 +27,8 @@ export const SOCKET_EVENTS = {
     // User Events
     USER_JOIN: 'user:join',
     PRESENCE_USERS: 'presence:users',
+    USER_UPDATE_ROLE: 'user:update-role',
+    USER_ROLE_UPDATED: 'user:role-updated',
 
     // Error Events
     SERVER_ERROR: 'server:error'

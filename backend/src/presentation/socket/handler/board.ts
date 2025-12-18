@@ -28,10 +28,23 @@ export function registerBoardHandlers(
                 ownerId: user.getId().value
             });
 
+            // El creador se une a la sala del board
+            socket.join(board.getId().value);
+            console.log(`✅ Creador ${user.getName()} se unió a la sala ${board.getId().value}`);
+
+            // Agregar el creador a la lista de usuarios del board automáticamente
+            const creatorData = {
+                socketId: socket.id,
+                name: user.getName(),
+                role: 'editor'
+            };
+            boardUsersService.addUserToBoard(board.getId().value, creatorData);
+            console.log(`✅ Creador ${user.getName()} agregado a boardUsersService para ${board.getId().value}`);
+
             const boardData = {
                 ...board.toJSON(),
                 creatorName: user.getName(),
-                users: []
+                users: [creatorData]
             };
 
             // Emit to the creator
@@ -40,7 +53,14 @@ export function registerBoardHandlers(
             // Broadcast to all users (except creator)
             socket.broadcast.emit(SOCKET_EVENTS.BOARD_CREATED, boardData);
 
-            console.log(`Board created: ${board.getId().value} by ${user.getName()}`);
+            // Emitir actualización de lista de boards a TODOS para que vean el nuevo board
+            const io = (socket as any).nsp.server;
+            const allBoards = await boardService.getAllBoards();
+            const boardsWithUsers = boardUsersService.getAllBoardsWithUsers(allBoards);
+            io.emit(SOCKET_EVENTS.BOARD_LIST, { boards: boardsWithUsers, success: true });
+            console.log(`📋 Board list actualizado a todos los usuarios`);
+
+            console.log(`📌 Board created: ${board.getId().value} by ${user.getName()}`);
         } catch (err: any) {
             gateway.sendError(socket, err.message);
         }
@@ -49,10 +69,18 @@ export function registerBoardHandlers(
     socket.on(SOCKET_EVENTS.BOARD_LIST, async () => {
         try {
             const boards = await boardService.getAllBoards();
+            console.log(`📋 BOARD_LIST solicitado: ${boards.length} boards encontrados`);
+            
             // Agregar usuarios de cada board
             const boardsWithUsers = boardUsersService.getAllBoardsWithUsers(boards);
+            
+            // Log detallado de cada board
+            boardsWithUsers.forEach((b: any) => {
+                console.log(`  - Board "${b.name}": ${b.users?.length || 0} usuarios`, b.users);
+            });
+            
             socket.emit(SOCKET_EVENTS.BOARD_LIST, { boards: boardsWithUsers, success: true });
-            console.log(`Board list requested by ${socket.id}, found ${boards.length} boards`);
+            console.log(`✅ Board list emitido al socket ${socket.id}`);
         } catch (err: any) {
             gateway.sendError(socket, err.message);
         }
@@ -62,6 +90,8 @@ export function registerBoardHandlers(
         try {
             const user = await userRepo.findBySocketId(socket.id);
             if (!user) throw new Error('User not found');
+
+            console.log(`🚪 BOARD_JOIN iniciado - socket: ${socket.id}, board: ${data.boardId}, usuario: ${user.getName()}`);
 
             await joinBoardUC.execute({
                 userId: socket.id,
@@ -77,6 +107,7 @@ export function registerBoardHandlers(
                 role: 'editor'
             };
             boardUsersService.addUserToBoard(data.boardId, userData);
+            console.log(`✅ Usuario agregado al servicio de board-users`);
 
             const board = await boardService.getBoardById(data.boardId);
             const notes = await noteService.getNotesByBoard(data.boardId);
@@ -90,19 +121,21 @@ export function registerBoardHandlers(
 
             // Get users in this board from the service
             const roomUsers = boardUsersService.getUsersInBoard(data.boardId);
+            console.log(`📊 Usuarios en board ${data.boardId}: ${roomUsers.length}`, roomUsers);
 
             // Send board data with updated users list to the joining user
             const boardDataWithUsers = {
                 ...boardData,
                 users: roomUsers
             };
+            console.log(`📤 Emitiendo board:data con ${boardDataWithUsers.users?.length || 0} usuarios`);
             socket.emit(SOCKET_EVENTS.BOARD_DATA, { board: boardDataWithUsers, notes });
 
             // Get the IO instance
             const io = (socket as any).nsp.server;
 
-            // Notify others that a user joined
-            socket.to(data.boardId).emit(SOCKET_EVENTS.BOARD_USER_JOINED, {
+            // Notify ALL users (including the new user) that someone joined
+            io.to(data.boardId).emit(SOCKET_EVENTS.BOARD_USER_JOINED, {
                 boardId: data.boardId,
                 user: userData
             });
@@ -155,10 +188,22 @@ export function registerBoardHandlers(
 
     socket.on(SOCKET_EVENTS.BOARD_INIT, async (data: { boardId: string }) => {
         try {
+            console.log(`🔄 BOARD_INIT recibido para board: ${data.boardId}`);
             const board = await boardService.getBoardById(data.boardId);
             const notes = await noteService.getNotesByBoard(data.boardId);
+            
+            // Obtener usuarios del board desde el servicio en memoria
+            const roomUsers = boardUsersService.getUsersInBoard(data.boardId);
+            console.log(`📊 BOARD_INIT: Usuarios encontrados: ${roomUsers.length}`, roomUsers);
+            
+            // Enviar board data con usuarios incluidos
+            const boardWithUsers = {
+                ...board,
+                users: roomUsers
+            };
 
-            socket.emit(SOCKET_EVENTS.BOARD_DATA, { board, notes });
+            console.log(`📤 BOARD_INIT: Emitiendo board:data con ${roomUsers.length} usuarios`);
+            socket.emit(SOCKET_EVENTS.BOARD_DATA, { board: boardWithUsers, notes });
         } catch (err: any) {
             gateway.sendError(socket, err.message);
         }
