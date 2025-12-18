@@ -39,7 +39,7 @@ export class SocketAdapter {
         this.io.on('connection', (socket) => {
             console.log(`Client connected: ${socket.id}`);
 
-            registerUserHandlers(socket, gateway, this.joinUserUC, this.userService);
+            registerUserHandlers(socket, gateway, this.joinUserUC, this.userService, this.userRepo, this.io);
             registerBoardHandlers(
                 socket,
                 gateway,
@@ -60,7 +60,7 @@ export class SocketAdapter {
             );
             registerCommentHandlers(socket, gateway, this.addCommentUC, this.userRepo);
 
-            socket.on('disconnect', handleDisconnect(socket, this.userRepo, gateway, this.userService));
+            socket.on('disconnect', handleDisconnect(socket, this.userRepo, gateway, this.userService, this.io));
         });
     }
 }

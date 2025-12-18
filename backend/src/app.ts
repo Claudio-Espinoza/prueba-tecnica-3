@@ -36,7 +36,7 @@ export function createApp(
     app.use(express.urlencoded({ extended: true }));
 
     app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
-    logger.info('SWAGGER', `📚 API Docs disponible en http://localhost:${env.port || 3001}/api-docs`);
+    logger.info('SWAGGER', `API Docs disponible en http://localhost:${env.port || 3001}/api-docs`);
 
     app.use((req, res, next) => {
         logger.info('HTTP', `${req.method} ${req.path}`, { ip: req.ip });

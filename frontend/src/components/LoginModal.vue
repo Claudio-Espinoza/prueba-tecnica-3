@@ -63,15 +63,22 @@ import { ref } from 'vue';
 import { useUserStore } from '../stores/userStore';
 import { socketService } from '../services/socketService';
 
+// ============ STATE ============
+
 const name = ref('');
 const isLoading = ref(false);
 const error = ref('');
 
+// ============ STORE ============
+
 const userStore = useUserStore();
+
+// ============ METHODS ============
 
 const handleLogin = async () => {
    error.value = '';
 
+   // Validación básica
    if (!name.value.trim()) {
       error.value = 'Por favor ingresa tu nombre';
       return;
@@ -145,6 +152,8 @@ const handleLogin = async () => {
       socketService.disconnect();
    }
 };
+
+// ============ EMIT ============
 
 const emit = defineEmits<{
    'login-success': [];

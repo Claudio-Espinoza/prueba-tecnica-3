@@ -12,11 +12,13 @@ export class BoardService {
     async getAllBoards(): Promise<any[]> {
         const boards = await this.boardRepository.findAll();
         const boardsWithUserNames: any[] = [];
+        const allUsers = await this.userRepository.findAll();
 
         for (const board of boards) {
             const boardData = board.toJSON();
             try {
-                const owner = await this.userRepository.findBySocketId(boardData.ownerId);
+                // Buscar el usuario por ID (ownerId es el UserId, no el socketId)
+                const owner = allUsers.find(u => u.getId().value === boardData.ownerId);
                 boardsWithUserNames.push({
                     ...boardData,
                     creatorName: owner?.getName() || 'Desconocido',
@@ -40,7 +42,9 @@ export class BoardService {
 
         const boardData = board.toJSON();
         try {
-            const owner = await this.userRepository.findBySocketId(boardData.ownerId);
+            const allUsers = await this.userRepository.findAll();
+            // Buscar el usuario por ID (ownerId es el UserId, no el socketId)
+            const owner = allUsers.find(u => u.getId().value === boardData.ownerId);
             return {
                 ...boardData,
                 creatorName: owner?.getName() || 'Desconocido',

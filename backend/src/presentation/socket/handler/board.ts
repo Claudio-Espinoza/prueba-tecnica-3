@@ -27,7 +27,11 @@ export function registerBoardHandlers(
                 ownerId: user.getId().value
             });
 
-            const boardData = board.toJSON();
+            const boardData = {
+                ...board.toJSON(),
+                creatorName: user.getName(),
+                users: []
+            };
 
             // Emit to the creator
             socket.emit(SOCKET_EVENTS.BOARD_CREATED, boardData);
