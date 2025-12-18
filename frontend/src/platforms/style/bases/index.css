@@ -5,7 +5,7 @@
       font-family: var(--font-headings);
       letter-spacing: var(--leading-normal);
       font-size: var(--text-header-1);
-      line-height: var(--text-header-1);
+      line-height: 100%;
       font-weight: 600;
       color: var(--color-neutral-900);
    }
@@ -16,6 +16,7 @@
       font-size: var(--text-header-2);
       color: var(--color-neutral-900);
       font-weight: 500;
+      line-height: 100%;
    }
    h3 {
       font-family: var(--font-headings);
@@ -23,6 +24,7 @@
       font-size: var(--text-header-3);
       color: var(--color-neutral-900);
       font-weight: 500;
+      line-height: 100%;
    }
    h4 {
       font-family: var(--font-headings);
@@ -30,6 +32,7 @@
       font-size: var(--text-header-4);
       color: var(--color-neutral-900);
       font-weight: 500;
+      line-height: 100%;
    }
    h5 {
       font-family: var(--font-headings);
@@ -37,6 +40,7 @@
       font-size: var(--text-header-5);
       color: var(--color-neutral-900);
       font-weight: 500;
+      line-height: 100%;
    }
    h6 {
       font-family: var(--font-headings);
@@ -44,12 +48,12 @@
       font-size: var(--text-header-6);
       color: var(--color-neutral-900);
       font-weight: 500;
+      line-height: 100%;
    }
 
    p {
       font-family: var(--font-body);
       letter-spacing: var(--leading-normal);
-      color: var(--color-neutral-700);
    }
 
    a {

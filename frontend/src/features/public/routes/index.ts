@@ -4,13 +4,13 @@ const routesPublic = [
         component: () => import('@libraries/layout/PublicLayout.vue'),
         children: [
             {
-                path: '',
+                path: '/home',
                 name: 'home',
                 component: () => import('@features/public/view/HomeView.vue'),
             },
             {
-                path: 'home',
-                redirect: '/',
+                path: '/',
+                redirect: 'home',
             },
         ],
     },
