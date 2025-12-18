@@ -1,20 +1,61 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { Icon } from '@iconify/vue';
 import { useBoardStore } from '../../../stores/boardStore';
 import { useUserStore } from '../../../stores/userStore';
 import { socketService } from '../../../services/socketService';
+import { konvaService } from '../../../services/konvaService';
+import KonvaNote from '../components/KonvaNote.vue';
+import NoteCommentsModal from '../components/NoteCommentsModal.vue';
+import NoteEditModal from '../components/NoteEditModal.vue';
 
 const router = useRouter();
 const boardStore = useBoardStore();
 const userStore = useUserStore();
 
-const canvasRef = ref<HTMLCanvasElement | null>(null);
+const stageRef = ref<any>(null);
+const layerRef = ref<any>(null);
 const activeUsersCount = ref<number>(0);
 const boardUsers = ref<any[]>([]);
 const debugInfo = ref<string>('Inicializando...');
 const participantListKey = ref<number>(0); // Key para forzar re-render de la lista
+
+// Estado de notas para FASE 3: Canvas Manager
+const notes = ref<any[]>([
+   {
+      id: '1',
+      title: 'Bienvenida',
+      description: 'Esta es una nota de ejemplo en el canvas colaborativo',
+      x: 50,
+      y: 50,
+      width: 200,
+      height: 150,
+      color: '#FF6B6B',
+      comments: [],
+   },
+   {
+      id: '2',
+      title: 'Instrucciones',
+      description: 'Arrastra las notas, haz doble clic para comentar',
+      x: 300,
+      y: 100,
+      width: 200,
+      height: 150,
+      color: '#4ECDC4',
+      comments: [],
+   },
+]);
+const selectedNoteId = ref<string | null>(null);
+const noteColors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA15E'];
+
+// Estado del modal de comentarios (FASE 4)
+const showCommentsModal = ref<boolean>(false);
+const selectedNoteForComments = ref<any>(null);
+
+// Estado del modal de edición
+const showEditModal = ref<boolean>(false);
+const selectedNoteForEdit = ref<any>(null);
 
 // Función para generar un checksum simple de la lista
 const getListChecksum = (users: any[]): string => {
@@ -29,6 +70,12 @@ const isCreator = computed(() => {
    if (!currentBoard.value || !userStore.currentUser) return false;
    return currentBoard.value.creatorName === userStore.currentUser.name;
 });
+
+// Config del stage de Konva
+const stageConfig = computed(() => ({
+   width: typeof window !== 'undefined' ? window.innerWidth - 340 : 1000,
+   height: typeof window !== 'undefined' ? window.innerHeight - 100 : 600,
+}));
 
 // Recuperar board del localStorage si existe
 const loadBoardFromStorage = () => {
@@ -59,6 +106,147 @@ const saveBoardToStorage = (board: any) => {
 const participantColor = (index: number) => {
    const colors = ['bg-yellow-400', 'bg-red-400', 'bg-blue-400', 'bg-green-400', 'bg-purple-400'];
    return colors[index % colors.length];
+};
+
+// Canvas Manager: Crear nueva nota
+const createNote = () => {
+   const newNote = {
+      id: Date.now().toString(),
+      title: 'Nueva Nota',
+      description: 'Haz clic para editar...',
+      x: Math.random() * 400 + 100,
+      y: Math.random() * 300 + 100,
+      width: 200,
+      height: 150,
+      color: noteColors[Math.floor(Math.random() * noteColors.length)],
+      comments: [],
+   };
+   notes.value.push(newNote);
+   console.log('✅ Nota creada:', newNote.id);
+   // Emitir al socket para sincronizar con otros usuarios
+   socketService.socket?.emit('notes:create', {
+      boardId: currentBoard.value?.id,
+      note: newNote,
+   });
+};
+
+// Debounce para actualizaciones de posición (evitar spam)
+let positionUpdateTimeout: any = null;
+const positionUpdates = new Map<string, { x: number; y: number }>();
+
+// Canvas Manager: Actualizar posición de nota (drag-drop)
+const updateNotePosition = (noteId: string, x: number, y: number) => {
+   const note = notes.value.find((n) => n.id === noteId);
+   if (note) {
+      note.x = x;
+      note.y = y;
+
+      // Almacenar la última actualización
+      positionUpdates.set(noteId, { x, y });
+
+      // Limpiar timeout anterior
+      if (positionUpdateTimeout) clearTimeout(positionUpdateTimeout);
+
+      // Emitir con debounce muy corto (100ms)
+      positionUpdateTimeout = setTimeout(() => {
+         for (const [id, pos] of positionUpdates.entries()) {
+            socketService.socket?.emit('notes:update-position', {
+               boardId: currentBoard.value?.id,
+               noteId: id,
+               x: pos.x,
+               y: pos.y,
+            });
+            console.log(`📡 Posición sincronizada: Nota ${id} → (${pos.x}, ${pos.y})`);
+         }
+         positionUpdates.clear();
+      }, 100);
+   }
+};
+
+// Canvas Manager: Seleccionar nota y abrir editor
+const selectNote = (noteId: string) => {
+   const note = notes.value.find((n) => n.id === noteId);
+   if (note) {
+      selectedNoteForEdit.value = note;
+      showEditModal.value = true;
+      selectedNoteId.value = noteId;
+      console.log('🎯 Nota seleccionada para editar:', noteId);
+   }
+};
+
+// Canvas Manager: Eliminar nota
+const deleteNote = (noteId: string) => {
+   notes.value = notes.value.filter((n) => n.id !== noteId);
+   if (selectedNoteId.value === noteId) selectedNoteId.value = null;
+   console.log('🗑️ Nota eliminada:', noteId);
+   // Emitir al socket
+   socketService.socket?.emit('notes:delete', {
+      boardId: currentBoard.value?.id,
+      noteId,
+   });
+};
+
+// Canvas Manager: Agregar comentario a nota
+const addCommentToNote = (noteId: string) => {
+   console.log('💬 Abrir modal de comentarios para nota:', noteId);
+   const note = notes.value.find((n) => n.id === noteId);
+   if (note) {
+      selectedNoteForComments.value = note;
+      showCommentsModal.value = true;
+   }
+};
+
+// Modal: Agregar comentario
+const handleAddComment = async (data: any) => {
+   const note = notes.value.find((n) => n.id === data.noteId);
+   if (note) {
+      if (!note.comments) note.comments = [];
+      note.comments.push(data.comment);
+      await nextTick();
+      console.log(`✅ Comentario agregado: ${data.noteId}`);
+      // Emitir al socket inmediatamente
+      socketService.socket?.emit('notes:comment-add', {
+         boardId: currentBoard.value?.id,
+         noteId: data.noteId,
+         comment: data.comment,
+      });
+   }
+};
+
+// Modal: Cerrar
+const closeCommentsModal = () => {
+   showCommentsModal.value = false;
+   selectedNoteForComments.value = null;
+};
+
+// Modal: Guardar cambios de edición
+const handleSaveEdit = (data: any) => {
+   const note = notes.value.find((n) => n.id === data.noteId);
+   if (note) {
+      note.title = data.title;
+      note.description = data.description;
+      console.log(`✅ Nota editada: ${data.noteId}`);
+      // Emitir al socket para sincronizar
+      socketService.socket?.emit('notes:update', {
+         boardId: currentBoard.value?.id,
+         noteId: data.noteId,
+         title: data.title,
+         description: data.description,
+      });
+   }
+   closeEditModal();
+};
+
+// Modal: Eliminar nota desde el modal de edición
+const handleDeleteFromModal = (noteId: string) => {
+   deleteNote(noteId);
+   closeEditModal();
+};
+
+// Modal: Cerrar editor
+const closeEditModal = () => {
+   showEditModal.value = false;
+   selectedNoteForEdit.value = null;
 };
 
 const toggleUserRole = (user: any) => {
@@ -94,58 +282,33 @@ const setupRealtimeListeners = () => {
    listenersSetup = true;
    console.log('🎯 Registrando listeners de tiempo real');
 
-   socketService.socket?.on('board:users-updated', (data) => {
-      console.log('🔄 board:users-updated recibido:', data);
-      console.log('📍 Board IDs: actual=', currentBoard.value?.id, 'received=', data.boardId);
-
-      // Actualizar si el board ID coincide con el actual
+   socketService.socket?.on('board:users-updated', async (data) => {
       if (data.boardId === currentBoard.value?.id && data.users && Array.isArray(data.users)) {
-         console.log('🔄 Usuarios actualizados para este board:', data.users.length, 'usuarios');
          boardUsers.value = [...data.users];
          activeUsersCount.value = data.users.length;
-         debugInfo.value = `✅ Actualizado | ${activeUsersCount.value} usuarios`;
-         console.log('✅ Contador actualizado a:', activeUsersCount.value);
-      } else if (!currentBoard.value?.id) {
-         console.log('⚠️ Sin board actual asignado aún');
-      } else if (data.boardId !== currentBoard.value.id) {
-         console.log('ℹ️ Evento de otro board (', data.boardId, '!==', currentBoard.value.id, ')');
+         debugInfo.value = `✅ ${activeUsersCount.value} usuarios en línea`;
+         await nextTick();
       }
    });
 
-   socketService.socket?.on('board:user-joined', (data) => {
-      console.log('👤 board:user-joined recibido:', data);
-      console.log(
-         '👤 Verificación: boardId=',
-         data.boardId,
-         ', currentBoard=',
-         currentBoard.value?.id
-      );
-      if (!data.boardId || !currentBoard.value?.id) {
-         console.warn('⚠️ IDs no disponibles, almacenando evento');
-         return;
-      }
-      if (data.boardId === currentBoard.value.id) {
-         console.log('👤 Usuario se unió:', data.user.name);
+   socketService.socket?.on('board:user-joined', async (data) => {
+      if (data.boardId === currentBoard.value?.id) {
          const userExists = boardUsers.value.some((u) => u.socketId === data.user.socketId);
          if (!userExists) {
             boardUsers.value = [...boardUsers.value, data.user];
             activeUsersCount.value = boardUsers.value.length;
-            debugInfo.value = `👤 Usuario unido | Total: ${activeUsersCount.value}`;
-            console.log('✅ Usuario agregado. Total:', boardUsers.value.length);
+            debugInfo.value = `👤 ${data.user.name} se unió`;
+            await nextTick();
          }
-      } else {
-         console.log('ℹ️ Evento de otro board:', data.boardId);
       }
    });
 
-   socketService.socket?.on('board:user-left', (data) => {
-      console.log('👋 board:user-left recibido:', data);
+   socketService.socket?.on('board:user-left', async (data) => {
       if (data.boardId === currentBoard.value?.id) {
-         console.log('👋 Usuario se fue');
          boardUsers.value = boardUsers.value.filter((u) => u.socketId !== data.userId);
          activeUsersCount.value = boardUsers.value.length;
          debugInfo.value = `👋 Usuario salió | Total: ${activeUsersCount.value}`;
-         console.log('✅ Usuario removido. Total:', boardUsers.value.length);
+         await nextTick();
       }
    });
 
@@ -156,6 +319,7 @@ const setupRealtimeListeners = () => {
       console.log('📊 Board users property exists:', 'users' in (data?.board || {}));
       console.log('📊 Board users array:', data?.board?.users);
       console.log('📊 Users length:', data?.board?.users?.length);
+      console.log('📝 Notas recibidas:', data?.notes);
 
       if (data?.board) {
          // Actualizar el board en el store Y en localStorage
@@ -189,6 +353,27 @@ const setupRealtimeListeners = () => {
             debugInfo.value = '⚠️ Sin usuarios en datos';
          }
       }
+
+      // 📝 Cargar notas iniciales del board (FASE 6: Sincronización)
+      if (data?.notes && Array.isArray(data.notes)) {
+         console.log(`📝 Cargando ${data.notes.length} notas iniciales del board`);
+         // Mapear las notas de BD a formato del canvas
+         notes.value = data.notes.map((note: any) => ({
+            id: note.id || note.getId?.(),
+            title: note.title,
+            description: note.content || note.description || '',
+            x: note.x || 50,
+            y: note.y || 50,
+            width: note.width || 200,
+            height: note.height || 150,
+            color: note.color || '#FF6B6B',
+            comments: note.comments || [],
+         }));
+         console.log(`✅ Notas sincronizadas: ${notes.value.length} notas cargadas`);
+      } else if (!data?.notes) {
+         console.log('ℹ️ Sin notas en el board');
+         // Mantener las notas de ejemplo si no hay notas en BD
+      }
    });
 
    socketService.socket?.on('user:role-updated', (data) => {
@@ -198,6 +383,71 @@ const setupRealtimeListeners = () => {
          user.role = data.role;
          debugInfo.value = `🔄 Rol actualizado: ${user.name} → ${data.role}`;
          console.log(`✅ Rol de ${user.name} actualizado a ${data.role}`);
+      }
+   });
+
+   // 📝 Listeners para eventos de notas (FASE 5: Backend Sync) - Tiempo Real
+   socketService.socket?.on('notes:created', async (data) => {
+      console.log('📝 [INMEDIATO] Nota creada por otro usuario:', data.note.id);
+      if (data.boardId === currentBoard.value?.id) {
+         notes.value.push(data.note);
+         await nextTick();
+         console.log(`✅ [SYNC] Nota creada: ${data.note.title}`);
+      }
+   });
+
+   socketService.socket?.on('notes:updated', async (data) => {
+      console.log('🔄 [INMEDIATO] Nota actualizada:', data.noteId);
+      if (data.boardId === currentBoard.value?.id) {
+         const note = notes.value.find((n) => n.id === data.noteId);
+         if (note) {
+            // Actualizar los campos que enviamos
+            if (data.updates) {
+               if (data.updates.title !== undefined) note.title = data.updates.title;
+               if (data.updates.description !== undefined)
+                  note.description = data.updates.description;
+               if (data.updates.x !== undefined) note.x = data.updates.x;
+               if (data.updates.y !== undefined) note.y = data.updates.y;
+            }
+            await nextTick();
+            console.log(`✅ [SYNC] Nota actualizada: ${data.noteId}`);
+         }
+      }
+   });
+
+   socketService.socket?.on('notes:position-updated', async (data) => {
+      console.log('📍 [INMEDIATO] Posición actualizada:', data.noteId);
+      if (data.boardId === currentBoard.value?.id) {
+         const note = notes.value.find((n) => n.id === data.noteId);
+         if (note) {
+            note.x = data.x;
+            note.y = data.y;
+            await nextTick();
+            console.log(`✅ [SYNC] Posición: (${data.x}, ${data.y})`);
+         }
+      }
+   });
+
+   socketService.socket?.on('notes:deleted', async (data) => {
+      console.log('🗑️ [INMEDIATO] Nota eliminada:', data.noteId);
+      if (data.boardId === currentBoard.value?.id) {
+         notes.value = notes.value.filter((n) => n.id !== data.noteId);
+         if (selectedNoteId.value === data.noteId) selectedNoteId.value = null;
+         await nextTick();
+         console.log(`✅ [SYNC] Nota eliminada: ${data.noteId}`);
+      }
+   });
+
+   socketService.socket?.on('notes:comment-added', async (data) => {
+      console.log('💬 [INMEDIATO] Comentario agregado:', data.noteId);
+      if (data.boardId === currentBoard.value?.id) {
+         const note = notes.value.find((n) => n.id === data.noteId);
+         if (note) {
+            if (!note.comments) note.comments = [];
+            note.comments.push(data.comment);
+            await nextTick();
+            console.log(`✅ [SYNC] Comentario sincronizado: ${data.noteId}`);
+         }
       }
    });
 };
@@ -239,7 +489,7 @@ onMounted(() => {
       socketService.socket?.emit('board:init', { boardId: currentBoard.value.id });
    }
 
-   // 🔄 Cron cada 5 segundos para detectar cambios en la lista de participantes
+   // 🔄 Monitoreo continuo cada 300ms para detectar cambios en la lista de participantes
    lastChecksum = getListChecksum(boardUsers.value);
    checkInterval = setInterval(() => {
       const currentChecksum = getListChecksum(boardUsers.value);
@@ -249,17 +499,17 @@ onMounted(() => {
          // Cambiar la key para forzar re-render del componente
          participantListKey.value++;
       }
-   }, 5000);
+   }, 300);
 
-   // Inicializar canvas
-   if (canvasRef.value) {
-      const ctx = canvasRef.value.getContext('2d');
-      if (ctx) {
-         canvasRef.value.width = canvasRef.value.offsetWidth;
-         canvasRef.value.height = canvasRef.value.offsetHeight;
-         ctx.fillStyle = '#fafafa';
-         ctx.fillRect(0, 0, canvasRef.value.width, canvasRef.value.height);
-      }
+   // Inicializar Konva después de que los refs estén montados
+   if (stageRef.value && layerRef.value) {
+      console.log('🎨 Stage de Konva inicializado:', stageRef.value);
+      // Inicializar el servicio con los refs
+      konvaService.initStage(stageRef.value, layerRef.value);
+      // Configurar zoom y pan
+      konvaService.setupZoom();
+      konvaService.setupPan();
+      console.log('✅ Zoom y pan configurados');
    }
 });
 
@@ -274,11 +524,20 @@ onUnmounted(() => {
       console.log('⏹️ Cron de verificación detenido');
    }
 
+   // Limpiar Konva
+   konvaService.destroy();
+   console.log('🗑️ Konva limpiado');
+
    socketService.socket?.off('board:users-updated');
    socketService.socket?.off('board:user-joined');
    socketService.socket?.off('board:user-left');
    socketService.socket?.off('board:data');
    socketService.socket?.off('user:role-updated');
+   socketService.socket?.off('notes:created');
+   socketService.socket?.off('notes:updated');
+   socketService.socket?.off('notes:position-updated');
+   socketService.socket?.off('notes:deleted');
+   socketService.socket?.off('notes:comment-added');
 });
 </script>
 
@@ -288,10 +547,35 @@ onUnmounted(() => {
          <section
             class="flex-1 p-6 bg-neutral-50 border rounded-2xl border-neutral-400 flex flex-col gap-6 overflow-hidden"
          >
-            <canvas
-               ref="canvasRef"
-               class="size-full rounded-l cursor-crosshair border-2 border-dashed border-neutral-400"
-            />
+            <!-- Konva Stage -->
+            <div class="flex-1 flex flex-col gap-2">
+               <button
+                  @click="createNote()"
+                  class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center gap-2 w-fit"
+               >
+                  <Icon icon="lineicons:plus" class="w-4 h-4" />
+                  Nueva Nota
+               </button>
+               <v-stage
+                  ref="stageRef"
+                  :config="stageConfig"
+                  class="rounded-l border-2 border-dashed border-neutral-400 flex-1"
+               >
+                  <v-layer ref="layerRef">
+                     <KonvaNote
+                        v-for="note in notes"
+                        :key="note.id"
+                        :note="note"
+                        :isSelected="selectedNoteId === note.id"
+                        :color="note.color"
+                        @select="selectNote"
+                        @update="(data) => updateNotePosition(data.id, data.x, data.y)"
+                        @delete="deleteNote"
+                        @comment="addCommentToNote"
+                     />
+                  </v-layer>
+               </v-stage>
+            </div>
          </section>
          <section
             class="h-full w-80 p-6 bg-neutral-50 border rounded-2xl border-neutral-400 flex flex-col gap-2 overflow-hidden"
@@ -388,5 +672,26 @@ onUnmounted(() => {
             </div>
          </section>
       </article>
+
+      <!-- Modal de Comentarios (FASE 4) -->
+      <NoteCommentsModal
+         :noteId="selectedNoteForComments?.id || null"
+         :noteName="selectedNoteForComments?.title"
+         :comments="selectedNoteForComments?.comments || []"
+         :isOpen="showCommentsModal"
+         @add-comment="handleAddComment"
+         @close="closeCommentsModal"
+      />
+
+      <!-- Modal de Edición de Nota -->
+      <NoteEditModal
+         :noteId="selectedNoteForEdit?.id || null"
+         :title="selectedNoteForEdit?.title || ''"
+         :description="selectedNoteForEdit?.description || ''"
+         :isOpen="showEditModal"
+         @save="handleSaveEdit"
+         @delete="handleDeleteFromModal"
+         @close="closeEditModal"
+      />
    </div>
 </template>

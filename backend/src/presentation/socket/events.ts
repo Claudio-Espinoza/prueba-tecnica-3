@@ -13,16 +13,18 @@ export const SOCKET_EVENTS = {
     BOARD_USERS_UPDATED: 'board:users-updated',
 
     // Note Events
-    NOTE_CREATE: 'note:create',
-    NOTE_UPDATE: 'note:update',
-    NOTE_DELETE: 'note:delete',
-    NOTE_CREATED: 'note:created',
-    NOTE_UPDATED: 'note:updated',
-    NOTE_DELETED: 'note:deleted',
+    NOTE_CREATE: 'notes:create',
+    NOTE_UPDATE: 'notes:update',
+    NOTE_UPDATE_POSITION: 'notes:update-position',
+    NOTE_DELETE: 'notes:delete',
+    NOTE_CREATED: 'notes:created',
+    NOTE_UPDATED: 'notes:updated',
+    NOTE_POSITION_UPDATED: 'notes:position-updated',
+    NOTE_DELETED: 'notes:deleted',
 
     // Comment Events
-    NOTE_COMMENT: 'note:comment',
-    NOTE_COMMENTED: 'note:commented',
+    NOTE_COMMENT: 'notes:comment-add',
+    NOTE_COMMENTED: 'notes:comment-added',
 
     // User Events
     USER_JOIN: 'user:join',
